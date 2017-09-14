@@ -1,5 +1,5 @@
 # The code for changing pages was derived from: http://stackoverflow.com/questions/7546050/switch-between-two-frames-in-tkinter
-# License: http://creativecommons.org/licenses/by-sa/3.0/	
+# License: http://creativecommons.org/licenses/by-sa/3.0/
 
 import matplotlib
 import time
@@ -19,9 +19,8 @@ LARGE_FONT = ("Verdana", 12)
 style.use("ggplot")
 
 
-
-rate = 1 #rate in msec. Unfortunately we cannot give value less than 1 because FuncAnimation() takes interval as integer.
-#If you find a way to do this, let us know!
+rate = 1  # rate in msec. Unfortunately we cannot give value less than 1 because FuncAnimation() takes interval as integer.
+# If you find a way to do this, let us know!
 curSamples = 0
 posSamples = 0
 currList = []
@@ -33,16 +32,18 @@ currentLimit = 0
 StartPID = False
 StartCurr = False
 
+
 def print_message():
     print("Usage: [sudo] python SMS_gui.py port_number \n")
     exit(0)
 
+
 def animatePID(i):
-    global posSamples, posList,timeListPID, motorId, Autoscale
+    global posSamples, posList, timeListPID, motorId, Autoscale
     if StartPID and not StartCurr:
         pullData = float(sms.getPosition(motorId))
         # print(float(pullData))
-        time = float(posSamples*rate)/1000
+        time = float(posSamples * rate) / 1000
         if(len(posList) > 100):
             posList = posList[1:]
             timeListPID = timeListPID[1:]
@@ -51,12 +52,13 @@ def animatePID(i):
         timeListPID.append(time)
         a1.clear()
         if (not Autoscale.get()):
-            a1.set_ylim([min(start,goal)-1000, max(start, goal) + 1000])
+            a1.set_ylim([min(start, goal) - 1000, max(start, goal) + 1000])
         a1.set_title("Position (ticks) - time (sec)")
         a1.set_xlabel("time (sec)")
         a1.set_ylabel("Position (ticks)")
-        a1.plot(timeListPID, posList,marker='.',markersize=12)
+        a1.plot(timeListPID, posList, marker='.', markersize=12)
         posSamples += 1
+
 
 def animateCurrent(i):
     global curSamples
@@ -66,7 +68,7 @@ def animateCurrent(i):
     if(StartCurr and not StartPID):
         pullData = sms.getCurrent(motorId)
 
-        time = float(curSamples*rate)/1000
+        time = float(curSamples * rate) / 1000
         if(len(currList) > 100):
             currList = currList[1:]
             timeListCurr = timeListCurr[1:]
@@ -90,11 +92,11 @@ class SMSapp(tk.Tk):
         tk.Tk.wm_title(self, "Super Modified Servo application")
 
         container = tk.Frame(self)
-        container.grid(column = 1, row = 1)
+        container.grid(column=1, row=1)
 
         self.frames = {}
 
-        for F in (StartPage,PIDGraph, CurrentGraph):
+        for F in (StartPage, PIDGraph, CurrentGraph):
             frame = F(container, self)
 
             self.frames[F] = frame
@@ -110,30 +112,29 @@ class SMSapp(tk.Tk):
             frame.canvas.draw_idle()
 
 
-
 class StartPage(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Start Page", font=LARGE_FONT)
-        label.grid(row=1,column=3,pady=10, padx=10)
+        label.grid(row=1, column=3, pady=10, padx=10)
 
         button2 = ttk.Button(self, text="Test PID",
                              command=lambda: controller.show_frame(PIDGraph))
-        button2.grid(row=3,column=3)
+        button2.grid(row=3, column=3)
 
         button3 = ttk.Button(self, text="Current Graph",
                              command=lambda: controller.show_frame(CurrentGraph))
-        button3.grid(row=3,column=4)
-        MLabel = ttk.Label(self, text="Motor ID: (now is "+str(motorId)+")")
-        MLabel.grid(column=3,row=4,sticky=tk.W)
+        button3.grid(row=3, column=4)
+        MLabel = ttk.Label(self, text="Motor ID: (now is " + str(motorId) + ")")
+        MLabel.grid(column=3, row=4, sticky=tk.W)
         MEntry = ttk.Entry(self)
-        MEntry.grid(column=4,row=4,sticky=tk.W)
+        MEntry.grid(column=4, row=4, sticky=tk.W)
         MButton = ttk.Button(self, text="Change",
                              command=lambda: self.changeMotor(int(MEntry.get())))
-        MButton.grid(column=5,row=4,sticky=tk.W)
+        MButton.grid(column=5, row=4, sticky=tk.W)
 
-    def changeMotor(self,motorID):
+    def changeMotor(self, motorID):
         global motorId
         motorId = motorID
 
@@ -154,10 +155,9 @@ class StartPage(tk.Frame):
 
 class PIDGraph(tk.Frame):
 
-
     def __init__(self, parent, controller):
         global PEntry, IEntry, DEntry, SPointEntry, FPointEntry
-        global motorId, Type, Direction,Autoscale
+        global motorId, Type, Direction, Autoscale
         Type = tk.StringVar()
         Type.set("Profiled")
         Direction = tk.StringVar()
@@ -166,76 +166,76 @@ class PIDGraph(tk.Frame):
         Autoscale.set(1)
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Test PID", font=LARGE_FONT)
-        label.grid(column=10,row=0)
+        label.grid(column=10, row=0)
 
         button1 = ttk.Button(self, text="Back to Home",
                              command=lambda: controller.show_frame(StartPage))
-        button1.grid(column=0,row=1,sticky=tk.W)
+        button1.grid(column=0, row=1, sticky=tk.W)
         button2 = ttk.Button(self, text="Go to Current Graph",
                              command=lambda: controller.show_frame(CurrentGraph))
-        button2.grid(column=0,row=2,sticky=tk.W)
+        button2.grid(column=0, row=2, sticky=tk.W)
         button3 = ttk.Button(self, text="Start Motor",
-                             command= lambda: sms.start(motorId))
-        button3.grid(column=0,row=3,sticky=tk.W)
+                             command=lambda: sms.start(motorId))
+        button3.grid(column=0, row=3, sticky=tk.W)
         button4 = ttk.Button(self, text="Stop Motor",
                              command=lambda: sms.stop(motorId))
-        button4.grid(column=0,row=4,sticky=tk.W)
+        button4.grid(column=0, row=4, sticky=tk.W)
 
         button3 = ttk.Button(self, text="Reset Errors",
-                             command= lambda: sms.resetErrors(motorId))
-        button3.grid(column=0,row=5,sticky=tk.W)
+                             command=lambda: sms.resetErrors(motorId))
+        button3.grid(column=0, row=5, sticky=tk.W)
         button3 = ttk.Button(self, text="Start Move",
-                             command= lambda: self.chooseMove())
-        button3.grid(column=0,row=6,sticky=tk.W)
+                             command=lambda: self.chooseMove())
+        button3.grid(column=0, row=6, sticky=tk.W)
 
         button3 = ttk.Button(self, text="Halt",
-                             command= lambda: self.doHalt())
-        button3.grid(column=0,row=7,sticky=tk.W)
-        button3 = ttk.Checkbutton(self, text="Auto Scale ?", variable=Autoscale,onvalue=1,offvalue=0)
-        button3.grid(column=0,row=8,sticky=tk.W)
+                             command=lambda: self.doHalt())
+        button3.grid(column=0, row=7, sticky=tk.W)
+        button3 = ttk.Checkbutton(self, text="Auto Scale ?", variable=Autoscale, onvalue=1, offvalue=0)
+        button3.grid(column=0, row=8, sticky=tk.W)
         R1 = ttk.Radiobutton(self, text="Direct", variable=Type, value="Direct")
-        R1.grid(column=0,row=9,sticky=tk.W)
+        R1.grid(column=0, row=9, sticky=tk.W)
         R2 = ttk.Radiobutton(self, text="Profiled", variable=Type, value="Profiled")
-        R2.grid(column=1,row=9,sticky=tk.W)
+        R2.grid(column=1, row=9, sticky=tk.W)
         R1 = ttk.Radiobutton(self, text="Absolute", variable=Direction, value="Absolute")
-        R1.grid(column=0,row=10,sticky=tk.W)
+        R1.grid(column=0, row=10, sticky=tk.W)
         R2 = ttk.Radiobutton(self, text="Relative", variable=Direction, value="Relative")
-        R2.grid(column=1,row=10,sticky=tk.W)
-        PLabel = ttk.Label(self, text="P Value: (now is "+str(sms.getPIDgainP(motorId))+")")
-        PLabel.grid(column=0,row=11,sticky=tk.W)
+        R2.grid(column=1, row=10, sticky=tk.W)
+        PLabel = ttk.Label(self, text="P Value: (now is " + str(sms.getPIDgainP(motorId)) + ")")
+        PLabel.grid(column=0, row=11, sticky=tk.W)
         PEntry = ttk.Entry(self)
-        PEntry.grid(column=1,row=11,sticky=tk.W)
+        PEntry.grid(column=1, row=11, sticky=tk.W)
         PButton = ttk.Button(self, text="Change",
-                             command=lambda: self.setP(controller,int(PEntry.get()),PIDGraph))
-        PButton.grid(column=2,row=11,sticky=tk.W)
-        ILabel = ttk.Label(self, text="I Value: (now is "+str(sms.getPIDgainI(motorId))+")")
-        ILabel.grid(column=0,row=12,sticky=tk.W)
+                             command=lambda: self.setP(controller, int(PEntry.get()), PIDGraph))
+        PButton.grid(column=2, row=11, sticky=tk.W)
+        ILabel = ttk.Label(self, text="I Value: (now is " + str(sms.getPIDgainI(motorId)) + ")")
+        ILabel.grid(column=0, row=12, sticky=tk.W)
         IEntry = ttk.Entry(self)
-        IEntry.grid(column=1,row=12,sticky=tk.W)
+        IEntry.grid(column=1, row=12, sticky=tk.W)
         IButton = ttk.Button(self, text="Change",
-                             command=lambda: self.setI(controller,int(IEntry.get()),PIDGraph))
-        IButton.grid(column=2,row=12,sticky=tk.W)
-        DLabel = ttk.Label(self, text="D Value:(now is "+str(sms.getPIDgainD(motorId))+")")
-        DLabel.grid(column=0,row=13,sticky=tk.W)
+                             command=lambda: self.setI(controller, int(IEntry.get()), PIDGraph))
+        IButton.grid(column=2, row=12, sticky=tk.W)
+        DLabel = ttk.Label(self, text="D Value:(now is " + str(sms.getPIDgainD(motorId)) + ")")
+        DLabel.grid(column=0, row=13, sticky=tk.W)
         DEntry = ttk.Entry(self)
-        DEntry.grid(column=1,row=13,sticky=tk.W)
+        DEntry.grid(column=1, row=13, sticky=tk.W)
         DButton = ttk.Button(self, text="Change",
-                             command=lambda: self.setD(controller,int(DEntry.get()),PIDGraph))
-        DButton.grid(column=2,row=13,sticky=tk.W)
+                             command=lambda: self.setD(controller, int(DEntry.get()), PIDGraph))
+        DButton.grid(column=2, row=13, sticky=tk.W)
         SPointLabel = ttk.Label(self, text="Starting Point:")
-        SPointLabel.grid(column=0,row=14,sticky=tk.W)
+        SPointLabel.grid(column=0, row=14, sticky=tk.W)
         SPointEntry = ttk.Entry(self)
-        SPointEntry.grid(column=1,row=14,sticky=tk.W)
+        SPointEntry.grid(column=1, row=14, sticky=tk.W)
         FPointLabel = ttk.Label(self, text="Goal:")
-        FPointLabel.grid(column=0,row=15,sticky=tk.W)
+        FPointLabel.grid(column=0, row=15, sticky=tk.W)
         FPointEntry = ttk.Entry(self)
-        FPointEntry.grid(column=1,row=15,sticky=tk.W)
+        FPointEntry.grid(column=1, row=15, sticky=tk.W)
         canvasPID = FigureCanvasTkAgg(f1, self)
         canvasPID.show()
-        canvasPID.get_tk_widget().grid(column=7,row=7,rowspan=7,columnspan=7)
+        canvasPID.get_tk_widget().grid(column=7, row=7, rowspan=7, columnspan=7)
         self.canvas = canvasPID
 
-    def setP(controller,Pvalue, frame):
+    def setP(controller, Pvalue, frame):
         if (Pvalue <= 0):
             print("Wrong P Value!")
         else:
@@ -287,33 +287,32 @@ class PIDGraph(tk.Frame):
         StartPID = False
 
 
-
 class CurrentGraph(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Current Graph", font=LARGE_FONT)
-        label.grid(row=0,column=10,pady=10, padx=10)
+        label.grid(row=0, column=10, pady=10, padx=10)
 
         button1 = ttk.Button(self, text="Back to Home",
                              command=lambda: controller.show_frame(StartPage))
-        button1.grid(row=1,column=0,sticky=tk.W)
+        button1.grid(row=1, column=0, sticky=tk.W)
         button2 = ttk.Button(self, text="Go to PID Graph",
                              command=lambda: controller.show_frame(PIDGraph))
-        button2.grid(row=2,column=0,sticky=tk.W)
+        button2.grid(row=2, column=0, sticky=tk.W)
         button3 = ttk.Button(self, text="Start Motor",
-                             command= lambda: self.doStart())
-        button3.grid(row=3,column=0,sticky=tk.W)
+                             command=lambda: self.doStart())
+        button3.grid(row=3, column=0, sticky=tk.W)
         button4 = ttk.Button(self, text="Stop Motor",
                              command=lambda: sms.stop(motorId))
-        button4.grid(row=4,column=0,sticky=tk.W)
+        button4.grid(row=4, column=0, sticky=tk.W)
 
         button5 = ttk.Button(self, text="Reset Motor",
                              command=lambda: sms.reset(motorId))
-        button5.grid(row=5,column=0,sticky=tk.W)
+        button5.grid(row=5, column=0, sticky=tk.W)
 
         canvasCurr = FigureCanvasTkAgg(f2, self)
         canvasCurr.show()
-        canvasCurr.get_tk_widget().grid(column=7,row=7,rowspan=7,columnspan=7)
+        canvasCurr.get_tk_widget().grid(column=7, row=7, rowspan=7, columnspan=7)
         self.canvas = canvasCurr
 
     def doStart(self):
@@ -321,6 +320,7 @@ class CurrentGraph(tk.Frame):
         sms.start(motorId)
         StartCurr = True
         StartPID = False
+
 
 f1 = Figure(figsize=(7, 7), dpi=100)
 a1 = f1.add_subplot(111)
