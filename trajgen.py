@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 def x(t):
 
     return np.array([1, t, t**2, t**3, t**4, t**5])
@@ -28,8 +29,8 @@ def Trajectory_Generation(time_step, tf, Delta, p0, pf, type):
     global h1
     global h2
     # helix code
-    r = 5
-    alpha = 5
+    # r = 5
+    # alpha = 5
     lamda_x = float((pf[0] - p0[0])) / tf
     lamda_y = float((pf[1] - p0[1])) / tf
     lamda_z = float((pf[2] - p0[2])) / tf
@@ -61,7 +62,7 @@ def Trajectory_Generation(time_step, tf, Delta, p0, pf, type):
         p_zero = p0[0]
         p_final = pf[0]
 
-    if (Delta >= .5 * (tf - time[0])) :
+    if (Delta >= .5 * (tf - time[0])):
         print('The input you gave is not valid')
         exit(0)
     dp = float((p_final - p_zero)) / (tf - 2 * Delta)
@@ -79,7 +80,7 @@ def Trajectory_Generation(time_step, tf, Delta, p0, pf, type):
     sol2 = np.linalg.solve(A2, B2)
     # print(sol2)
     A3 = np.array([x(tf - 2 * Delta), x(tf), dx(tf - 2 * Delta), dx(tf), dxdx(tf - 2 * Delta), dxdx(tf)])
-    B3= np.array([pf1, p_final, dp, 0, 0, 0])
+    B3 = np.array([pf1, p_final, dp, 0, 0, 0])
     sol3 = np.linalg.solve(A3, B3)
     # print(sol3)
     p = np.zeros(len(time))
@@ -100,7 +101,7 @@ def Trajectory_Generation(time_step, tf, Delta, p0, pf, type):
             d_p[j] = np.dot(dx(time[j]), sol1)
             dd_p[j] = np.dot(dxdx(time[j]), sol1)
         else:
-            if (j * time_step > 2 * Delta and j * time_step <= tf - 2 * Delta) :
+            if (j * time_step > 2 * Delta and j * time_step <= tf - 2 * Delta):
                 p[j] = np.dot(x_l(time[j]), sol2)
                 d_p[j] = np.dot([0, 1], sol2)
                 dd_p[j] = np.dot([0, 0], sol2)
@@ -154,6 +155,7 @@ def Trajectory_Generation(time_step, tf, Delta, p0, pf, type):
     plt.draw()
     plt.show()
     return p_d, time
+
 
 p_d, time = Trajectory_Generation(0.1, 10, 1, [0, 0, 0], [10, 10, 10], "line")
 # print(p_d)
