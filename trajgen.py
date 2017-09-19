@@ -157,6 +157,6 @@ def Trajectory_Generation(time_step, tf, Delta, p0, pf, type):
     return p_d, time
 
 
-p_d, time = Trajectory_Generation(0.1, 10, 1, [0, 0, 0], [10, 10, 10], "line")
+# p_d, time = Trajectory_Generation(0.1, 10, 1, [0, 0, 0], [10, 10, 10], "line")
 # print(p_d)
 # print(time)
