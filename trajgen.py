@@ -1,6 +1,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 
 def x(t):
@@ -127,6 +128,9 @@ def Trajectory_Generation(time_step, tf, Delta, p0, pf, type):
 
     # print(d_p)
     # print(dd_p)
+    fig1 = plt.figure()
+    ax1 = fig1.gca(projection='3d')
+    plt.ion()
     for j in range(0, len(time)):
         if flag0:
             # draw 3D line:
@@ -144,16 +148,33 @@ def Trajectory_Generation(time_step, tf, Delta, p0, pf, type):
             else:
                 p_d[1, j] = lamda_y * (p_d[0, j] - p0[0]) / lamda_x + p0[1]
                 p_d[2, j] = lamda_z * (p_d[0, j] - p0[0]) / lamda_x + p0[2]
+        if(j % 2 == 0):
+            ax1.scatter(p_d[0, j], p_d[1, j], p_d[2, j], '-.ob')
+            # axis([x_lim y_lim z_lim])
+            ax1.title.set_text('3D Trajectory Generated')
+            ax1.set_xlabel('x(m)')
+            ax1.set_ylabel('y(m)')
+            ax1.set_zlabel('z(m)')
+            plt.draw()
+            plt.show()
+            plt.pause(0.05)
+    # plt.hold(False)
+    plt.ioff()
     print(len(time))
-    plt.figure(1)
-    plt.plot(time, p, label="trajectory", color='b')
-    plt.plot(time, d_p, label="1st derivative", color='y')
-    plt.plot(time, dd_p, label="2nd derivative", color='r')
-    plt.title('Trajectory with derivatives')
-    # plt.legend('trajectory', '1st derivative', '2nd derivative')
-    plt.xlabel('time(sec)')
+    fig2 = plt.figure()
+    ax2 = fig2.gca()
+    ax2.plot(time, p, label="trajectory", color='b')
+    ax2.plot(time, d_p, label="1st derivative", color='y')
+    ax2.plot(time, dd_p, label="2nd derivative", color='r')
+    ax2.title.set_text('Trajectory with derivatives')
+    ax2.legend()
+    ax2.set_xlabel('time(sec)')
     plt.draw()
     plt.show()
+
+    plt.hold(True)
+    # plt.close(fig1)
+    # plt.close(fig2)
     return p_d, time
 
 
