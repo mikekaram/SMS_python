@@ -24,6 +24,7 @@ J = my_chain.jacobian_matrix(symb_mat)
 # p0_vector = [0.06, 0, 0]
 # p0_vector = my_chain.forward_kinematics([0] * 7)[:3, 3]
 # print("p0_vector:", p0_vector)
+# exit(0)
 p0_frame = my_chain.forward_kinematics([0] * 7)
 # p0_frame[:3, 3] = p0_vector
 p0_vector = p0_frame[:3, 3]
@@ -33,9 +34,9 @@ pf_frame[:3, 3] = pf_vector
 tf = 10
 dt = 0.1
 eps = 1e-10
-p_d, simulation_time = tg.Line_Generation(dt, tf, 0.1 * tf, p0_vector, pf_vector,'line')
-# print(p_d)
-# exit(0)
+p_d, simulation_time = tg.Trajectory_Generation(dt, tf, 0.1 * tf, p0_frame, pf_frame)
+print(p_d)
+
 q_0 = my_chain.inverse_kinematics(p0_frame)
 p_0 = my_chain.forward_kinematics(q_0)
 print(p_0)
@@ -49,8 +50,8 @@ q_prev = q_0
 # q_prev = (q_prev + np.pi) % (2 * np.pi) - np.pi
 q = np.zeros([7, len(simulation_time)])
 q[:, 0] = q_0
-damping = 0.001
-damping_coef = damping**2 * np.eye(3)
+damping = 0.000
+damping_coef = damping**2 * np.eye(6)
 t = time.time()
 for i in range(0, len(simulation_time) - 1):
     # p_star = symb_mat.subs([(theta0, q_prev[1]), (theta1, q_prev[2]), (theta2, q_prev[3]), (theta3, q_prev[4]), (theta4, q_prev[5]), (theta5, q_prev[6])])
@@ -62,7 +63,7 @@ for i in range(0, len(simulation_time) - 1):
     print(theta_star.shape)
     print(p_star_frame[:3, 3].shape)
     p_star = np.concatenate((p_star_frame[:3, 3], theta_star))
-    pdot = (p_d[:, i] - p_star[:3]) / dt
+    pdot = (p_d[:, i] - p_star) / dt
     # print("P dot is:", pdot)
     Ji = J.subs([(theta0, q_prev[1]), (theta1, q_prev[2]), (theta2, q_prev[3]), (theta3, q_prev[4]), (theta4, q_prev[5]), (theta5, q_prev[6])])
     # print(Ji)
@@ -71,8 +72,8 @@ for i in range(0, len(simulation_time) - 1):
     # if abs(np.linalg.det(np.array(Ji).astype(np.float64))) < eps:
     #     raise ValueError("Singularity in Jacobian!!! Simulation Terminated")
     #     exit(0)
-    Ji = np.array(Ji[:3, :]).astype(np.float64)
-    # Ji = np.array(Ji).astype(np.float64)
+    # Ji = np.array(Ji[:3, :]).astype(np.float64)
+    Ji = np.array(Ji).astype(np.float64)
     # solution of inverse kinematics using dps from http://math.ucsd.edu/~sbuss/ResearchWeb/ikmethods/iksurvey.pdf
     J_ = np.dot(Ji, np.transpose(Ji))
     # print("Ji is:", Ji)

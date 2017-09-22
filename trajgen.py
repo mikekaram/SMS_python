@@ -2,6 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import ikpy
 
 
 def x(t):
@@ -24,11 +25,162 @@ def dxdx(t):
     return np.array([0, 0, 2, 6 * t, 12 * t**2, 20 * t**3])
 
 
-def Trajectory_Generation(time_step, tf, Delta, p0, pf, type):
+def Orientation_Generation(time_step, tf, Delta, theta0, thetaf):
+    time = np.arange(0, tf + time_step, time_step)
+    theta0 = (theta0 + np.pi) % (2 * np.pi) - np.pi
+    thetaf = (thetaf + np.pi) % (2 * np.pi) - np.pi
+
+    if thetaf[0] >= theta0[0]:
+        theta0[0] = theta0[0] if abs(theta0[0] + 2 * np.pi - thetaf[0]) > abs(theta0[0] - thetaf[0]) else theta0[0] + 2 * np.pi
+    else:
+        theta0[0] = theta0[0] if abs(theta0[0] - 2 * np.pi - thetaf[0]) > abs(theta0[0] - thetaf[0]) else theta0[0] - 2 * np.pi
+    if thetaf[1] >= theta0[1]:
+        theta0[1] = theta0[1] if abs(theta0[1] + 2 * np.pi - thetaf[1]) > abs(theta0[1] - thetaf[1]) else theta0[1] + 2 * np.pi
+    else:
+        theta0[1] = theta0[1] if abs(theta0[1] - 2 * np.pi - thetaf[1]) > abs(theta0[1] - thetaf[1]) else theta0[1] - 2 * np.pi
+    if thetaf[2] >= theta0[2]:
+        theta0[2] = theta0[2] if abs(theta0[2] + 2 * np.pi - thetaf[2]) > abs(theta0[2] - thetaf[2]) else theta0[2] + 2 * np.pi
+    else:
+        theta0[2] = theta0[2] if abs(theta0[2] - 2 * np.pi - thetaf[2]) > abs(theta0[2] - thetaf[2]) else theta0[2] - 2 * np.pi
+
+    lamda_a = float((thetaf[0] - theta0[0])) / tf
+    lamda_b = float((thetaf[1] - theta0[1])) / tf
+    lamda_c = float((thetaf[2] - theta0[2])) / tf
+
+    flag2 = lamda_a == 0
+
+    flag3 = lamda_b == 0
+    flag4 = lamda_c == 0
+
+    if flag2:
+        if flag3:
+            if flag4:
+                theta_d = np.zeros((3, len(time)))
+                dtheta_d = np.zeros((3, len(time)))
+                ddtheta_d = np.zeros((3, len(time)))
+                print("No change in orientation!")
+                return theta_d, time
+            else:
+                theta_zero = theta0[2]
+                theta_final = thetaf[2]
+        else:
+            theta_zero = theta0[1]
+            theta_final = thetaf[1]
+    else:
+        theta_zero = theta0[0]
+        theta_final = thetaf[0]
+
+    if (Delta >= .5 * (tf - time[0])):
+        print('The input you gave is not valid')
+        exit(0)
+    dtheta = float((theta_final - theta_zero)) / (tf - 2 * Delta)
+    # print(dtheta)
+    thetaf1 = theta_final - dtheta * Delta
+    theta02 = theta_zero + dtheta * Delta
+    # print(thetaf1)
+    # print(theta02)
+    A1 = np.array([x(0), x(2 * Delta), dx(0), dx(2 * Delta), dxdx(0), dxdx(2 * Delta)])
+    B1 = np.array([theta_zero, theta02, 0, dtheta, 0, 0])
+    sol1 = np.linalg.solve(A1, B1)
+    # print(sol1)
+    A2 = np.array([x_l(2 * Delta), [0, 1]])
+    B2 = np.array([theta02, dtheta])
+    sol2 = np.linalg.solve(A2, B2)
+    # print(sol2)
+    A3 = np.array([x(tf - 2 * Delta), x(tf), dx(tf - 2 * Delta), dx(tf), dxdx(tf - 2 * Delta), dxdx(tf)])
+    B3 = np.array([thetaf1, theta_final, dtheta, 0, 0, 0])
+    sol3 = np.linalg.solve(A3, B3)
+    # print(sol3)
+    theta = np.zeros(len(time))
+    d_theta = np.zeros(len(time))
+    dd_theta = np.zeros(len(time))
+    theta_d = np.zeros((3, len(time)))
+    dtheta_d = np.zeros((3, len(time)))
+    ddtheta_d = np.zeros((3, len(time)))
+    for j in range(0, len(time)):
+        if (j * time_step <= 2 * Delta):
+            theta[j] = np.dot(x(time[j]), sol1)
+
+            d_theta[j] = np.dot(dx(time[j]), sol1)
+            dd_theta[j] = np.dot(dxdx(time[j]), sol1)
+        else:
+            if (j * time_step > 2 * Delta and j * time_step <= tf - 2 * Delta):
+                theta[j] = np.dot(x_l(time[j]), sol2)
+                d_theta[j] = np.dot([0, 1], sol2)
+                dd_theta[j] = np.dot([0, 0], sol2)
+
+            else:
+                theta[j] = np.dot(x(time[j]), sol3)
+                d_theta[j] = np.dot(dx(time[j]), sol3)
+                dd_theta[j] = np.dot(dxdx(time[j]), sol3)
+    # print(theta)
+    if flag2:
+        if flag3:
+            theta_d[2, :] = theta
+            dtheta_d[2, :] = d_theta
+            ddtheta_d[2, :] = dd_theta
+        else:
+            theta_d[1, :] = theta
+            dtheta_d[1, :] = d_theta
+            ddtheta_d[1, :] = dd_theta
+    else:
+        theta_d[0, :] = theta
+        dtheta_d[0, :] = d_theta
+        ddtheta_d[0, :] = dd_theta
+
+    # print(d_theta)
+    # print(dd_theta)
+    fig1 = plt.figure()
+    ax1 = fig1.gca(projection='3d')
+    plt.ion()
+    for j in range(0, len(time)):
+
+        if flag2:
+            if flag3:
+                theta_d[0, j] = theta0[0]
+                theta_d[1, j] = theta0[1]
+            else:
+                theta_d[0, j] = theta0[0]
+                if flag4:
+                    theta_d[2, j] = theta0[2]
+                else:
+                    theta_d[2, j] = lamda_c * (theta_d[1, j] - theta0[1]) / lamda_b + theta0[2]
+        else:
+            theta_d[1, j] = lamda_b * (theta_d[0, j] - theta0[0]) / lamda_a + theta0[1]
+            theta_d[2, j] = lamda_c * (theta_d[0, j] - theta0[0]) / lamda_a + theta0[2]
+        if(j % 2 == 0):
+            ax1.scatter(theta_d[0, j], theta_d[1, j], theta_d[2, j], '-.ob')
+            # axis([x_lim y_lim z_lim])
+            ax1.title.set_text('3D Trajectory Generated')
+            ax1.set_xlabel('a(rad)')
+            ax1.set_ylabel('b(rad)')
+            ax1.set_zlabel('c(rad)')
+            plt.draw()
+            plt.show()
+            plt.pause(0.05)
+    # plt.hold(False)
+    plt.ioff()
+    print(len(time))
+    fig2 = plt.figure()
+    ax2 = fig2.gca()
+    ax2.plot(time, theta, label="orientation", color='b')
+    ax2.plot(time, d_theta, label="1st derivative", color='y')
+    ax2.plot(time, dd_theta, label="2nd derivative", color='r')
+    ax2.title.set_text('Trajectory with derivatives')
+    ax2.legend()
+    ax2.set_xlabel('time(sec)')
+    plt.draw()
+    plt.show()
+
+    plt.hold(True)
+    # plt.close(fig1)
+    # plt.close(fig2)
+    return theta_d, time
+
+
+def Line_Generation(time_step, tf, Delta, p0, pf, type):
 
     time = np.arange(0, tf + time_step, time_step)
-    global h1
-    global h2
     # helix code
     # r = 5
     # alpha = 5
@@ -87,8 +239,6 @@ def Trajectory_Generation(time_step, tf, Delta, p0, pf, type):
     p = np.zeros(len(time))
     d_p = np.zeros(len(time))
     dd_p = np.zeros(len(time))
-    # p_d_1 = p
-    # p_d_2 = p
     p_d = np.zeros((3, len(time)))
     dp_d = np.zeros((3, len(time)))
     ddp_d = np.zeros((3, len(time)))
@@ -178,6 +328,13 @@ def Trajectory_Generation(time_step, tf, Delta, p0, pf, type):
     return p_d, time
 
 
+def Trajectory_Generation(time_step, tf, Delta, Transposition0, Transpositionf):
+    a1, b1, c1 = ikpy.geometry_utils.angles_from_rotation_matrix(Transposition0[:3, :3])
+    a2, b2, c2 = ikpy.geometry_utils.angles_from_rotation_matrix(Transpositionf[:3, :3])
+    theta_desired, time = Orientation_Generation(time_step, tf, Delta, np.array([a1, b1, c1]), np.array([a2, b2, c2]))
+    p_desired, time = Line_Generation(time_step, tf, Delta, Transposition0[:3, 3], Transpositionf[:3, 3], 'line')
+    Transposition_desired = np.concatenate((p_desired, theta_desired))
+    return Transposition_desired, time
 # p_d, time = Trajectory_Generation(0.1, 10, 1, [0, 0, 0], [10, 10, 10], "line")
 # print(p_d)
 # print(time)
