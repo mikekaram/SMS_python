@@ -27,21 +27,23 @@ def dxdx(t):
 
 def Orientation_Generation(time_step, tf, Delta, theta0, thetaf):
     time = np.arange(0, tf + time_step, time_step)
-    theta0 = (theta0 + np.pi) % (2 * np.pi) - np.pi
-    thetaf = (thetaf + np.pi) % (2 * np.pi) - np.pi
-
-    if thetaf[0] >= theta0[0]:
-        theta0[0] = theta0[0] if abs(theta0[0] + 2 * np.pi - thetaf[0]) > abs(theta0[0] - thetaf[0]) else theta0[0] + 2 * np.pi
-    else:
-        theta0[0] = theta0[0] if abs(theta0[0] - 2 * np.pi - thetaf[0]) > abs(theta0[0] - thetaf[0]) else theta0[0] - 2 * np.pi
-    if thetaf[1] >= theta0[1]:
-        theta0[1] = theta0[1] if abs(theta0[1] + 2 * np.pi - thetaf[1]) > abs(theta0[1] - thetaf[1]) else theta0[1] + 2 * np.pi
-    else:
-        theta0[1] = theta0[1] if abs(theta0[1] - 2 * np.pi - thetaf[1]) > abs(theta0[1] - thetaf[1]) else theta0[1] - 2 * np.pi
-    if thetaf[2] >= theta0[2]:
-        theta0[2] = theta0[2] if abs(theta0[2] + 2 * np.pi - thetaf[2]) > abs(theta0[2] - thetaf[2]) else theta0[2] + 2 * np.pi
-    else:
-        theta0[2] = theta0[2] if abs(theta0[2] - 2 * np.pi - thetaf[2]) > abs(theta0[2] - thetaf[2]) else theta0[2] - 2 * np.pi
+    # Wrap angles to [-pi,pi)
+    theta0 = ikpy.geometry_utils.wrap_to_pi(theta0)
+    # theta0 = (theta0 + np.pi) % (2 * np.pi) - np.pi
+    thetaf = ikpy.geometry_utils.wrap_to_pi(thetaf)
+    # The answer to the below code is this: https://stackoverflow.com/questions/1878907/the-smallest-difference-between-2-angles
+    if (thetaf[0] >= theta0[0] and (ikpy.geometry_utils.angle_difference(thetaf[0], theta0[0]) < 0)):
+        theta0[0] = theta0[0] + 2 * np.pi
+    elif (thetaf[0] < theta0[0] and (ikpy.geometry_utils.angle_difference(thetaf[0], theta0[0]) > 0)):
+        theta0[0] = theta0[0] - 2 * np.pi
+    if (thetaf[1] >= theta0[1] and (ikpy.geometry_utils.angle_difference(thetaf[1], theta0[1]) < 0)):
+        theta0[1] = theta0[1] + 2 * np.pi
+    elif (thetaf[1] < theta0[1] and (ikpy.geometry_utils.angle_difference(thetaf[1], theta0[1]) > 0)):
+        theta0[1] = theta0[1] - 2 * np.pi
+    if (thetaf[2] >= theta0[2] and (ikpy.geometry_utils.angle_difference(thetaf[2], theta0[2]) < 0)):
+        theta0[2] = theta0[2] + 2 * np.pi
+    elif (thetaf[2] < theta0[2] and (ikpy.geometry_utils.angle_difference(thetaf[2], theta0[2]) > 0)):
+        theta0[2] = theta0[2] - 2 * np.pi
 
     lamda_a = float((thetaf[0] - theta0[0])) / tf
     lamda_b = float((thetaf[1] - theta0[1])) / tf

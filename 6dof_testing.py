@@ -33,7 +33,7 @@ pf_frame[:3, 3] = pf_vector
 tf = 10
 dt = 0.1
 eps = 1e-10
-p_d, simulation_time = tg.Line_Generation(dt, tf, 0.1 * tf, p0_vector, pf_vector,'line')
+p_d, simulation_time = tg.Line_Generation(dt, tf, 0.1 * tf, p0_vector, pf_vector, 'line')
 # print(p_d)
 # exit(0)
 q_0 = my_chain.inverse_kinematics(p0_frame)

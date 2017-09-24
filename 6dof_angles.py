@@ -7,6 +7,20 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D as ax3
 import time
 
+
+def get_angle_difference(a1, b1, c1, a2, b2, c2):
+    a1 = ikpy.geometry_utils.wrap_to_pi(a1)
+    b1 = ikpy.geometry_utils.wrap_to_pi(b1)
+    c1 = ikpy.geometry_utils.wrap_to_pi(c1)
+    a2 = ikpy.geometry_utils.wrap_to_pi(a2)
+    b2 = ikpy.geometry_utils.wrap_to_pi(b2)
+    c2 = ikpy.geometry_utils.wrap_to_pi(c2)
+    d1 = ikpy.geometry_utils.angle_difference(a2, a1)
+    d2 = ikpy.geometry_utils.angle_difference(b2, b1)
+    d3 = ikpy.geometry_utils.angle_difference(c2, c1)
+    return np.array([d1, d2, d3])
+
+
 my_chain = ikpy.chain.Chain.from_urdf_file("6dof_description.urdf", base_elements=['base_link'], base_element_type='link')
 print(my_chain.forward_kinematics([0] * 7))
 # target_vector = [0.1, -0.2, 0.1]
@@ -35,7 +49,7 @@ tf = 10
 dt = 0.1
 eps = 1e-10
 p_d, simulation_time = tg.Trajectory_Generation(dt, tf, 0.1 * tf, p0_frame, pf_frame)
-print(p_d)
+# print(p_d)
 
 q_0 = my_chain.inverse_kinematics(p0_frame)
 p_0 = my_chain.forward_kinematics(q_0)
@@ -50,7 +64,7 @@ q_prev = q_0
 # q_prev = (q_prev + np.pi) % (2 * np.pi) - np.pi
 q = np.zeros([7, len(simulation_time)])
 q[:, 0] = q_0
-damping = 0.000
+damping = 0.0001
 damping_coef = damping**2 * np.eye(6)
 t = time.time()
 for i in range(0, len(simulation_time) - 1):
@@ -60,11 +74,13 @@ for i in range(0, len(simulation_time) - 1):
     p_star_frame = my_chain.forward_kinematics(q_prev)
     a_star, b_star, c_star = ikpy.geometry_utils.angles_from_rotation_matrix(p_star_frame[:3, :3])
     theta_star = np.array([a_star, b_star, c_star])
-    print(theta_star.shape)
-    print(p_star_frame[:3, 3].shape)
-    p_star = np.concatenate((p_star_frame[:3, 3], theta_star))
-    pdot = (p_d[:, i] - p_star) / dt
-    # print("P dot is:", pdot)
+    # print(theta_star.shape)
+    # print(p_star_frame[:3, 3].shape)
+    # p_star = np.concatenate((p_star_frame[:3, 3], theta_star))
+    pdot = (p_d[:, i][:3] - p_star_frame[:3, 3]) / dt
+    thetadot = get_angle_difference(a_star, b_star, c_star, p_d[3, i], p_d[4, i], p_d[5, i]) * dt**2
+    tdot = np.concatenate((pdot, thetadot))
+    print("T dot is:", tdot)
     Ji = J.subs([(theta0, q_prev[1]), (theta1, q_prev[2]), (theta2, q_prev[3]), (theta3, q_prev[4]), (theta4, q_prev[5]), (theta5, q_prev[6])])
     # print(Ji)
     # print(Ji.shape)
@@ -78,7 +94,7 @@ for i in range(0, len(simulation_time) - 1):
     J_ = np.dot(Ji, np.transpose(Ji))
     # print("Ji is:", Ji)
     # print("J_ is:", J_)
-    f = np.linalg.solve(J_ + damping_coef, pdot)
+    f = np.linalg.solve(J_ + damping_coef, tdot)
     qdot = np.dot(np.transpose(Ji), f)
     # qdot = np.dot(np.linalg.pinv(np.array(Ji).astype(np.float64)), pdot)
     # print(qdot)
