@@ -28,6 +28,10 @@ def homing():
     sms.shut_down(0)
 
 
+def move_xyz_abc(p0, pf, a, b, c):
+    pass
+
+
 motorIds = [4, 5, 6]
 global absolute_position_homing
 absolute_positions_homing = np.array([11116.0, 7582.0, 12024.0])
