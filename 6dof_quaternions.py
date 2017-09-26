@@ -42,9 +42,10 @@ J = my_chain.jacobian_matrix(symb_mat)
 p0_frame = my_chain.forward_kinematics([0] * 7)
 # p0_frame[:3, 3] = p0_vector
 p0_vector = p0_frame[:3, 3]
-pf_vector = [-0.05, 0.05, 0.17]
+
 pf_frame = np.eye(4)
 pf_frame[:3, :3] = ikpy.geometry_utils.rpy_matrix(-np.pi / 4, np.pi / 2, 0)
+pf_vector = [-0.05, -0.05, 0.17]
 pf_frame[:3, 3] = pf_vector
 tf = 10
 dt = 0.1
