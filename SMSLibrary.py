@@ -56,6 +56,7 @@ def getResponse():
     b = ser.read(6)
     # The first 6 bytes are useless for us (2 header bytes + addressed and owned id + command id and byte count = 6 bytes)
     num = 0
+    print("Read 6 bytes and byte count is:", ord(b[5]))
     for i in range(0, ord(b[5])):
         carrying_data = True
         b += ser.read()
@@ -134,7 +135,7 @@ def stopall(startId, stopId):
 
 def resetall(startId, stopId):
     for i in range(startId, stopId + 1):
-        resetErrors(i)
+        print(resetErrors(i))
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Important! In Set Commands we return the not getResponse()[0] because getResponse() returns as it's first argument a boolean
@@ -374,10 +375,10 @@ def getCurrent(mid):
     return getResponse()
 
 
-def broadCastDoMove():
+def broadcastDoMove():
     command = bytearray([0x55, 0xAA, 0x00, 0x01, 0xC8, 0x00, 0xC8])
     ser.write(command)
-    return getResponse()
+    return True
 
 
 def broadcastStart():
@@ -470,7 +471,7 @@ def main():
         stop(int(sys.argv[3]))
         shut_down(int(sys.argv[1]))
     if (sys.argv[2] == "resetall"):
-        resetall(0, 10)
+        resetall(4, 6)
         shut_down(int(sys.argv[1]))
     if (sys.argv[2] == "reset"):
         resetErrors(int(sys.argv[3]))
