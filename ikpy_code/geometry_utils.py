@@ -77,6 +77,14 @@ def wrap_to_pi(theta):
     return np.mod(theta + np.pi, 2 * np.pi) - np.pi
 
 
+def quaternion_from_rotation_matrix():
+    pass
+
+
+def rotation_matrix_from_quaternion():
+    pass
+
+
 def rpy_matrix(roll, pitch, yaw):
     """Returns a rotation matrix described by the extrinsinc roll, pitch, yaw coordinates"""
     return np.dot(Rz_matrix(yaw), np.dot(Ry_matrix(pitch), Rx_matrix(roll)))
