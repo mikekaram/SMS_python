@@ -3,7 +3,7 @@ import time as t
 sms.init(0)
 
 
-motorId = [4, 5, 6]
+motorId = [4, 5, 6, 7, 8, 9]
 t.sleep(0.02)
 sms.broadcastStop()
 t.sleep(0.02)
@@ -17,10 +17,10 @@ for i in motorId:
     t.sleep(0.02)
 for i in motorId:
     # sms.setProfiledVelocitySetpoint(i, 128)
-    print(float(sms.getAbsolutePosition(i)[1]))
+    print(sms.getAbsolutePosition(i)[1])
     t.sleep(1)
-sms.broadcastDoMove()
-t.sleep(10)
+# sms.broadcastDoMove()
+t.sleep(1)
 # print(sms.getPIDgainP(motorId))
 # print(sms.getPIDgainI(motorId))
 # print(sms.getPIDgainD(motorId))

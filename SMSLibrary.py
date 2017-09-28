@@ -137,12 +137,12 @@ def resetall(startId, stopId):
     for i in range(startId, stopId + 1):
         print(resetErrors(i))
 
-#-----------------------------------------------------------------------------------------------------------------------
+###############################################################################################################################
 # Important! In Set Commands we return the not getResponse()[0] because getResponse() returns as it's first argument a boolean
 # variable, carrying_data, which represents if the response carries any data. Because the response of the Set Commands
 # doesn't carry any data, the carrying_data will be False (but the response to the command was successful).
 #  So we negate the getResponse()[0] to give as True for these commands.
-#-----------------------------------------------------------------------------------------------------------------------
+###############################################################################################################################
 
 
 def setPIDgainP(mid, val):
@@ -459,13 +459,13 @@ def main():
         shut_down(int(sys.argv[1]))
 
     if (sys.argv[2] == "startall"):
-        startall(0, 10)
+        broadcastStart()
         shut_down(int(sys.argv[1]))
     if (sys.argv[2] == "start"):
         start(int(sys.argv[3]))
         shut_down(int(sys.argv[1]))
     if (sys.argv[2] == "stopall"):
-        stopall(0, 10)
+        broadcastStop()
         shut_down(int(sys.argv[1]))
     if (sys.argv[2] == "stop"):
         stop(int(sys.argv[3]))
