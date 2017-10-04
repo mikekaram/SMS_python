@@ -38,11 +38,22 @@ class Robot_Chain(object):
         self.J = self.robot_chain.jacobian_matrix(self.transition_matrix)
         self.motors = motors
 
+    def get_actual_position(self):
+        q_actual = np.zeros(7)
+        for i, motor in enumerate(self.motors):
+            f = gu.ticks_to_angle(motor.getPosition()[1], motor.resolution_bits)
+            print(f)
+            q_actual[i + 1] = f
+            t.sleep(0.003)
+        return q_actual
+
     def move_xyz_abc(self, pf, a, b, c):
-        p0_frame = self.robot_chain.forward_kinematics([0] * 7)
+        # p0_frame = self.robot_chain.forward_kinematics([0] * 7)
+        p0_frame = self.robot_chain.forward_kinematics(self.get_actual_position())
         # p0_vector = p0_frame[:3][3]
         pf_frame = np.eye(4)
         pf_frame[:3, :3] = gu.rpy_matrix(a, b, c)
+        # pf_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
         pf_vector = pf
         pf_frame[:3, 3] = pf_vector
         print(p0_frame)
@@ -62,11 +73,11 @@ class Robot_Chain(object):
         damping = 0.005
         K_o = 2
         K_p = 2 * np.eye(3)
-        q_0 = self.robot_chain.inverse_kinematics(p0_frame)
-        # p_0 = self.robot_chain.forward_kinematics(q_0)
-        if not q_0.all:
-            raise ValueError("Initial Position out of Work Space!")
-            exit(0)
+        # q_0 = self.robot_chain.inverse_kinematics(p0_frame)
+        q_0 = self.get_actual_position()
+        # if not q_0.all:
+        #     raise ValueError("Initial Position out of Work Space!")
+        #     exit(0)
         q_d = np.zeros([6, len(simulation_time)])
         print(q_0)
 
@@ -76,7 +87,7 @@ class Robot_Chain(object):
         damping_coef = damping**2 * np.eye(6)
         t = time.time()
         for i in range(0, len(simulation_time) - 1):
-            self.move_motors(q_prev)
+
             p_star_frame = self.robot_chain.forward_kinematics(q_prev)
             omega_i = dt_d[3, i] * r
             omega_e = np.dot(p0_frame[:3, :3], omega_i)
@@ -96,7 +107,7 @@ class Robot_Chain(object):
             pdot = np.reshape(pdot, (-1, 1))
             thetadot = np.reshape(thetadot, (-1, 1))
             tdot = np.concatenate((pdot, thetadot))
-            print("T dot is:", tdot)
+            # print("T dot is:", tdot)
             Ji = self.J.subs([(self.theta[0], q_prev[1]), (self.theta[1], q_prev[2]), (self.theta[2], q_prev[3]), (self.theta[3], q_prev[4]), (self.theta[4], q_prev[5]), (self.theta[5], q_prev[6])])
             Ji = np.array(Ji).astype(np.float64)
             # solution of inverse kinematics using dps from http://math.ucsd.edu/~sbuss/ResearchWeb/ikmethods/iksurvey.pdf
@@ -106,18 +117,32 @@ class Robot_Chain(object):
             q_next = q_prev + np.insert(qdot, 0, 0) * dt
             q[:, i + 1] = q_next
             q_d[:, i] = qdot.ravel()
+            if i % 3 == 0:
+                self.move_motors(q_prev[1:], q_d[:, i])
             q_prev = q_next
-            print("Elapsed time is:", time.time() - t)
+            print("Elapsed time is: " + str(time.time() - t))
+        # self.move_motors([0] * 6, [0] * 6)
         return q, q_d
 
-    def move_motors(self, q):
+    def move_motors(self, q, q_dot):
+        rate = 1.0 / 4.46
+        # print(q_dot)
         for i, motor in enumerate(self.motors):
-            if i == 2:
-                motor.setProfiledAbsolutePositionSetpoint(-int(gu.angle_to_ticks(q[i], motor.resolution_bits)))
-            else:
-                motor.setProfiledAbsolutePositionSetpoint(int(gu.angle_to_ticks(q[i], motor.resolution_bits)))
-            t.sleep(0.003)
+            f = int(gu.angle_to_ticks(q_dot[i], motor.resolution_bits) * rate)
+            # d = int(gu.angle_to_ticks(q[i], motor.resolution_bits))
+            # if i == 3:
+            # motor.setProfiledAbsolutePositionSetpoint(-d)
+            # print(f)
+            # motor.setVelocitySetpoint(-f)
+            # elif i == 3:
+            # motor.setProfiledAbsolutePositionSetpoint((-1) * int(gu.angle_to_ticks(q[i], motor.resolution_bits)))
+            # else:
+            # motor.setProfiledAbsolutePositionSetpoint(d)
+            # print(int(gu.angle_to_ticks(q_dot[i], motor.resolution_bits) * rate))
+            motor.setVelocitySetpoint(f)
+            # t.sleep(0.005)
         sms.broadcastDoMove()
+        # t.sleep(2)
 
     def homing(self):
         ticks_to_go = np.zeros((6, 1))
@@ -126,17 +151,17 @@ class Robot_Chain(object):
         absolute_positions_entry_positions = np.zeros((6, 1))
         for i, motor in enumerate(self.motors):
             mId = motor.motorId
-            print(i, mId)
+            # print(i, mId)
             absolute_positions_entry_positions[i] = motor.getAbsolutePosition()[1]
-            print(absolute_positions_entry_positions)
+            # print(absolute_positions_entry_positions)
             t.sleep(0.01)
             absolute_angle_homing = gu.ticks_to_angle(motor.homing_position_ticks, motor.resolution_bits)
             absolute_angle_entry = gu.ticks_to_angle(absolute_positions_entry_positions[i], motor.resolution_bits)
             absolute_angle_limits = gu.ticks_to_angle(motor.limits, motor.resolution_bits)
             angles_to_go_limits = gu.angle_difference_with_limits(absolute_angle_homing, absolute_angle_entry, absolute_angle_limits)
             angles_to_go = gu.angle_difference(absolute_angle_homing, absolute_angle_entry)
-            print(angles_to_go_limits)
-            print(angles_to_go)
+            # print(angles_to_go_limits)
+            # print(angles_to_go)
             ticks_to_go[i] = gu.angle_to_ticks(angles_to_go_limits, motor.resolution_bits)
             print(ticks_to_go)
             motor.setProfiledAbsolutePositionSetpoint(int(ticks_to_go[i]))
