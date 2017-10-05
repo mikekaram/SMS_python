@@ -181,11 +181,13 @@ class Robot_Chain(object):
         position6 = np.zeros([3, len(q[0, :])])
         position7 = np.zeros([3, len(q[0, :])])
         position = {"pos0": position0, "pos1": position1, "pos2": position2, "pos3": position3, "pos4": position4, "pos5": position5, "pos6": position6, "pos7": position7}
-
+        orientation7 = np.zeros([3, len(q[0, :])])
         # print(len(my_chain.links))
         for j in range(0, len(q[0, :])):
             for index, link in enumerate(self.robot_chain.links):
                 position["pos%d" % (index + 1)][:, j] = np.array(self.robot_chain.symbolic_transformation_matrix(index + 1).subs([(self.theta[0], q[1, j]), (self.theta[1], q[2, j]), (self.theta[2], q[3, j]), (self.theta[3], q[4, j]), (self.theta[4], q[5, j]), (self.theta[5], q[6, j])])[:3, 3]).astype(np.float64).ravel()
+                if index + 1 == 7:
+                    orientation7[:, j] = gu.angles_from_rotation_matrix(np.array(self.robot_chain.symbolic_transformation_matrix(index + 1).subs([(self.theta[0], q[1, j]), (self.theta[1], q[2, j]), (self.theta[2], q[3, j]), (self.theta[3], q[4, j]), (self.theta[4], q[5, j]), (self.theta[5], q[6, j])])[:3, :3]).astype(np.float64))
         print(position)
 
         min_x = np.amin(np.concatenate([position["pos0"][0, :], position["pos1"][0, :], position["pos2"][0, :], position["pos3"][0, :], position["pos4"][0, :], position["pos5"][0, :], position["pos6"][0, :], position["pos7"][0, :]]))
@@ -209,7 +211,11 @@ class Robot_Chain(object):
             ax.plot([pos[0, 3], pos[0, 4]], [pos[1, 3], pos[1, 4]], [pos[2, 3], pos[2, 4]], color='yellow', linewidth=2, marker='o')
             ax.plot([pos[0, 4], pos[0, 5]], [pos[1, 4], pos[1, 5]], [pos[2, 4], pos[2, 5]], color='blue', linewidth=2, marker='o')
             ax.plot([pos[0, 5], pos[0, 6]], [pos[1, 5], pos[1, 6]], [pos[2, 5], pos[2, 6]], color='green', linewidth=2, marker='o')
-            ax.plot([pos[0, 6], pos[0, 7]], [pos[1, 6], pos[1, 7]], [pos[2, 6], pos[2, 7]], color='red', linewidth=2, marker='o')
+            ax.plot([pos[0, 6], pos[0, 7]], [pos[1, 6], pos[1, 7]], [pos[2, 6], pos[2, 7]], color='black', linewidth=2, marker='o')
+            rotation_matrix = gu.rotation_matrix(orientation7[:, i])
+            ax.plot([pos[0, 7], rotation_matrix[0, 0]], [pos[1, 7], rotation_matrix[1, 0]], [pos[2, 7], rotation_matrix[2, 0]], color='red', linewidth=2, marker='o')
+            ax.plot([pos[0, 7], rotation_matrix[0, 1]], [pos[1, 7], rotation_matrix[1, 1]], [pos[2, 7], rotation_matrix[2, 1]], color='blue', linewidth=2, marker='o')
+            ax.plot([pos[0, 7], rotation_matrix[0, 2]], [pos[1, 7], rotation_matrix[1, 2]], [pos[2, 7], rotation_matrix[2, 2]], color='green', linewidth=2, marker='o')
             plt.ylim(min_y, max_y)
             plt.xlim(min_x, max_x)
             # plt.zlim(min_z, max_z)
