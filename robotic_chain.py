@@ -48,8 +48,8 @@ class Robot_Chain(object):
         return q_actual
 
     def move_xyz_abc(self, pf, a, b, c):
-        # p0_frame = self.robot_chain.forward_kinematics([0] * 7)
-        p0_frame = self.robot_chain.forward_kinematics(self.get_actual_position())
+        p0_frame = self.robot_chain.forward_kinematics([0] * 7)
+        # p0_frame = self.robot_chain.forward_kinematics(self.get_actual_position())
         # p0_vector = p0_frame[:3][3]
         pf_frame = np.eye(4)
         pf_frame[:3, :3] = gu.rpy_matrix(a, b, c)
@@ -73,8 +73,8 @@ class Robot_Chain(object):
         damping = 0.005
         K_o = 2
         K_p = 2 * np.eye(3)
-        # q_0 = self.robot_chain.inverse_kinematics(p0_frame)
-        q_0 = self.get_actual_position()
+        q_0 = self.robot_chain.inverse_kinematics(p0_frame)
+        # q_0 = self.get_actual_position()
         # if not q_0.all:
         #     raise ValueError("Initial Position out of Work Space!")
         #     exit(0)
