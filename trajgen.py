@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import ikpy
+import ikpy.geometry_utils as gu
 
 
 def x(t):
@@ -27,17 +28,17 @@ def dxdx(t):
 
 def angle_axis_generation(time_step, tf, Delta, Ri, Rf):
     time = np.arange(0, tf + time_step, time_step)
-    R_if = np.transpose(Ri) * Rf
-    theta_f, r = ikpy.geometry_utils.angle_axis_from_rotation_matrix(R_if)
+    R_if = np.dot(Ri.T, Rf)
+    theta_f, r = gu.angle_axis_from_rotation_matrix(R_if)
+    # print(Rf, np.dot(Ri, gu.rotation_matrix_from_angle_axis(theta_f, *r)))
+    # print(R_if, gu.rotation_matrix_from_angle_axis(theta_f, *r))
     theta_0 = 0
-    # r = np.array([[R_if[2,1]-R_if[1,2]], [R_if[0,2]-R_if[2,0]], [R_if[1,0]-R_if[0,1]]]) / (2*np.sin(theta_f))
-
     # The answer to the below code is this: https://stackoverflow.com/questions/1878907/the-smallest-difference-between-2-angles
     if (theta_f >= theta_0 and (ikpy.geometry_utils.angle_difference(theta_f, theta_0) < 0)):
         theta_0 = theta_0 + 2 * np.pi
     elif (theta_f < theta_0 and (ikpy.geometry_utils.angle_difference(theta_f, theta_0) > 0)):
         theta_0 = theta_0 - 2 * np.pi
-
+    print(theta_f, theta_0)
     lamda = float((theta_f - theta_0)) / tf
 
     flag = lamda == 0
@@ -91,6 +92,7 @@ def angle_axis_generation(time_step, tf, Delta, Ri, Rf):
                 theta[j] = np.dot(x(time[j]), sol3)
                 d_theta[j] = np.dot(dx(time[j]), sol3)
                 dd_theta[j] = np.dot(dxdx(time[j]), sol3)
+        # print(np.dot(Ri, gu.rotation_matrix_from_angle_axis(theta[j], *r)))
     # print(theta)
 
     # print(d_theta)

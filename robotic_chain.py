@@ -48,9 +48,8 @@ class Robot_Chain(object):
         return q_actual
 
     def move_xyz_abc(self, pf, a, b, c):
-        # p0_frame = self.robot_chain.forward_kinematics([0] * 7)
-        p0_frame = self.robot_chain.forward_kinematics(self.get_actual_position())
-        # p0_vector = p0_frame[:3][3]
+        p0_frame = self.robot_chain.forward_kinematics([0] * 7)
+        # p0_frame = self.robot_chain.forward_kinematics(self.get_actual_position())
         pf_frame = np.eye(4)
         pf_frame[:3, :3] = gu.rpy_matrix(a, b, c)
         # pf_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
@@ -63,18 +62,21 @@ class Robot_Chain(object):
         Delta = 0.1 * tf
         # eps = 1e-10
         t_d, dt_d, r, simulation_time = tg.trajectory_generation(dt, tf, Delta, p0_frame, pf_frame)
+        # print(gu.rotation_matrix_from_angle_axis(t_d[3, -1], *r))
+        # print(np.dot(p0_frame[:3, :3], gu.rotation_matrix_from_angle_axis(t_d[3, -1], *r)))
+        # return 0
         q, q_d = self.motion_control(p0_frame, pf_frame, t_d, dt_d, r, simulation_time, dt)
         # for i, motor in enumerate(self.motors):
         #     print(int(gu.angle_to_ticks(q[i, :], motor.resolution_bits)))
-        # self.animate_move(q, q_d, p0_frame[:3, 3], pf_frame[:3, 3], simulation_time)
+        self.animate_move(q, q_d, p0_frame, pf_frame, simulation_time)
 
     def motion_control(self, p0_frame, pf_frame, t_d, dt_d, r, simulation_time, dt):
 
         damping = 0.005
-        K_o = 2
+        K_o = 5
         K_p = 2 * np.eye(3)
-        # q_0 = self.robot_chain.inverse_kinematics(p0_frame)
-        q_0 = self.get_actual_position()
+        q_0 = self.robot_chain.inverse_kinematics(p0_frame)
+        # q_0 = self.get_actual_position()
         # if not q_0.all:
         #     raise ValueError("Initial Position out of Work Space!")
         #     exit(0)
@@ -89,31 +91,32 @@ class Robot_Chain(object):
         for i in range(0, len(simulation_time) - 1):
 
             p_star_frame = self.robot_chain.forward_kinematics(q_prev)
-            omega_i = dt_d[3, i] * r
-            omega_e = np.dot(p0_frame[:3, :3], omega_i)
-            # print(omega_e.shape)
+            omega_i = np.dot(dt_d[3, i], r)
+            omega_d = np.dot(p0_frame[:3, :3], omega_i)
+            R_d = np.dot(p0_frame[:3, :3], gu.rotation_matrix_from_angle_axis(t_d[3, i], *r).astype(np.float64))
+            # print(R_d)
             ita_e, e_e = gu.quaternion_from_rotation_matrix(p_star_frame[:3, :3])
-            ita_d, e_d = gu.quaternion_from_rotation_matrix(np.dot(p0_frame[:3, :3], gu.rotation_matrix_from_angle_axis(t_d[3, i], *r)))
+            ita_d, e_d = gu.quaternion_from_rotation_matrix(R_d)
             e_e = np.reshape(e_e, (1, -1))
             e_d = np.reshape(e_d, (1, -1))
             # print(e_e, e_d)
             e_o = ita_e * e_d - ita_d * e_e - np.cross(e_d, e_e)
             e_o = np.reshape(e_o, (-1, 1))
-            omega_e = np.reshape(omega_e, (-1, 1))
+            omega_d = np.reshape(omega_d, (-1, 1))
             print(ita_e * ita_d + np.inner(e_e, e_d), e_o)
-            thetadot = omega_e + K_o * e_o
+            thetadot = omega_d + K_o * e_o
             e_p = t_d[:3, i] - p_star_frame[:3, 3]
             pdot = dt_d[:3, i] + np.dot(K_p, e_p)
             pdot = np.reshape(pdot, (-1, 1))
             thetadot = np.reshape(thetadot, (-1, 1))
             tdot = np.concatenate((pdot, thetadot))
-            # print("T dot is:", tdot)
+            print("T dot is:", tdot)
             Ji = self.J.subs([(self.theta[0], q_prev[1]), (self.theta[1], q_prev[2]), (self.theta[2], q_prev[3]), (self.theta[3], q_prev[4]), (self.theta[4], q_prev[5]), (self.theta[5], q_prev[6])])
             Ji = np.array(Ji).astype(np.float64)
             # solution of inverse kinematics using dps from http://math.ucsd.edu/~sbuss/ResearchWeb/ikmethods/iksurvey.pdf
-            J_ = np.dot(Ji, np.transpose(Ji))
+            J_ = np.dot(Ji, Ji.T)
             f = np.linalg.solve(J_ + damping_coef, tdot)
-            qdot = np.dot(np.transpose(Ji), f)
+            qdot = np.dot(Ji.T, f)
             q_next = q_prev + np.insert(qdot, 0, 0) * dt
             q[:, i + 1] = q_next
             q_d[:, i] = qdot.ravel()
@@ -128,7 +131,7 @@ class Robot_Chain(object):
         rate = 1.0 / 4.46
         # print(q_dot)
         for i, motor in enumerate(self.motors):
-            f = int(gu.angle_to_ticks(q_dot[i], motor.resolution_bits) * rate)
+            # f = int(gu.angle_to_ticks(q_dot[i], motor.resolution_bits) * rate)
             # d = int(gu.angle_to_ticks(q[i], motor.resolution_bits))
             # if i == 3:
             # motor.setProfiledAbsolutePositionSetpoint(-d)
@@ -170,8 +173,12 @@ class Robot_Chain(object):
         t.sleep(5)
         sms.broadcastStart()
 
-    def animate_move(self, q, q_d, p0_vector, pf_vector, simulation_time):
-        print(q, q_d, p0_vector, pf_vector, simulation_time)
+    def animate_move(self, q, q_d, p0_frame, pf_frame, simulation_time):
+        p0_vector = p0_frame[:3, 3]
+        pf_vector = pf_frame[:3, 3]
+        orientation_scale = 0.01
+        pf_rotation_matrix = pf_frame[:3, :3] * orientation_scale
+        # print(q, q_d, p0_vector, pf_vector, simulation_time)
         position0 = np.zeros([3, len(q[0, :])])
         position1 = np.zeros([3, len(q[0, :])])
         position2 = np.zeros([3, len(q[0, :])])
@@ -186,8 +193,10 @@ class Robot_Chain(object):
         for j in range(0, len(q[0, :])):
             for index, link in enumerate(self.robot_chain.links):
                 position["pos%d" % (index + 1)][:, j] = np.array(self.robot_chain.symbolic_transformation_matrix(index + 1).subs([(self.theta[0], q[1, j]), (self.theta[1], q[2, j]), (self.theta[2], q[3, j]), (self.theta[3], q[4, j]), (self.theta[4], q[5, j]), (self.theta[5], q[6, j])])[:3, 3]).astype(np.float64).ravel()
-                if index + 1 == 7:
-                    orientation7[:, j] = gu.angles_from_rotation_matrix(np.array(self.robot_chain.symbolic_transformation_matrix(index + 1).subs([(self.theta[0], q[1, j]), (self.theta[1], q[2, j]), (self.theta[2], q[3, j]), (self.theta[3], q[4, j]), (self.theta[4], q[5, j]), (self.theta[5], q[6, j])])[:3, :3]).astype(np.float64))
+                if index == 6:
+                    rotation7 = np.array(self.robot_chain.symbolic_transformation_matrix(index + 1).subs([(self.theta[0], q[1, j]), (self.theta[1], q[2, j]), (self.theta[2], q[3, j]), (self.theta[3], q[4, j]), (self.theta[4], q[5, j]), (self.theta[5], q[6, j])])[:3, :3]).astype(np.float64)
+                    # print(rotation7)
+                    orientation7[:, j] = np.array(gu.angles_from_rotation_matrix(rotation7))
         print(position)
 
         min_x = np.amin(np.concatenate([position["pos0"][0, :], position["pos1"][0, :], position["pos2"][0, :], position["pos3"][0, :], position["pos4"][0, :], position["pos5"][0, :], position["pos6"][0, :], position["pos7"][0, :]]))
@@ -205,6 +214,9 @@ class Robot_Chain(object):
             pos = np.hstack((np.reshape(position["pos0"][:, i], (-1, 1)), np.reshape(position["pos1"][:, i], (-1, 1)), np.reshape(position["pos2"][:, i], (-1, 1)), np.reshape(position["pos3"][:, i], (-1, 1)), np.reshape(position["pos4"][:, i], (-1, 1)), np.reshape(position["pos5"][:, i], (-1, 1)), np.reshape(position["pos6"][:, i], (-1, 1)), np.reshape(position["pos7"][:, i], (-1, 1))))
             # print(pos.shape)
             ax.plot([p0_vector[0], pf_vector[0]], [p0_vector[1], pf_vector[1]], [p0_vector[2], pf_vector[2]], color='green', linewidth=2, marker='o')
+            ax.plot([pf_vector[0], pf_vector[0] + pf_rotation_matrix[0, 0]], [pf_vector[1], pf_vector[1] + pf_rotation_matrix[1, 0]], [pf_vector[2], pf_vector[2] + pf_rotation_matrix[2, 0]], color='red', linewidth=2, marker='o')
+            ax.plot([pf_vector[0], pf_vector[0] + pf_rotation_matrix[0, 1]], [pf_vector[1], pf_vector[1] + pf_rotation_matrix[1, 1]], [pf_vector[2], pf_vector[2] + pf_rotation_matrix[2, 1]], color='green', linewidth=2, marker='o')
+            ax.plot([pf_vector[0], pf_vector[0] + pf_rotation_matrix[0, 2]], [pf_vector[1], pf_vector[1] + pf_rotation_matrix[1, 2]], [pf_vector[2], pf_vector[2] + pf_rotation_matrix[2, 2]], color='blue', linewidth=2, marker='o')
             ax.plot([pos[0, 0], pos[0, 1]], [pos[1, 0], pos[1, 1]], [pos[2, 0], pos[2, 1]], color='blue', linewidth=2, marker='o')
             ax.plot([pos[0, 1], pos[0, 2]], [pos[1, 1], pos[1, 2]], [pos[2, 1], pos[2, 2]], color='green', linewidth=2, marker='o')
             ax.plot([pos[0, 2], pos[0, 3]], [pos[1, 2], pos[1, 3]], [pos[2, 2], pos[2, 3]], color='black', linewidth=2, marker='o')
@@ -212,10 +224,11 @@ class Robot_Chain(object):
             ax.plot([pos[0, 4], pos[0, 5]], [pos[1, 4], pos[1, 5]], [pos[2, 4], pos[2, 5]], color='blue', linewidth=2, marker='o')
             ax.plot([pos[0, 5], pos[0, 6]], [pos[1, 5], pos[1, 6]], [pos[2, 5], pos[2, 6]], color='green', linewidth=2, marker='o')
             ax.plot([pos[0, 6], pos[0, 7]], [pos[1, 6], pos[1, 7]], [pos[2, 6], pos[2, 7]], color='black', linewidth=2, marker='o')
-            rotation_matrix = gu.rotation_matrix(orientation7[:, i])
-            ax.plot([pos[0, 7], rotation_matrix[0, 0]], [pos[1, 7], rotation_matrix[1, 0]], [pos[2, 7], rotation_matrix[2, 0]], color='red', linewidth=2, marker='o')
-            ax.plot([pos[0, 7], rotation_matrix[0, 1]], [pos[1, 7], rotation_matrix[1, 1]], [pos[2, 7], rotation_matrix[2, 1]], color='blue', linewidth=2, marker='o')
-            ax.plot([pos[0, 7], rotation_matrix[0, 2]], [pos[1, 7], rotation_matrix[1, 2]], [pos[2, 7], rotation_matrix[2, 2]], color='green', linewidth=2, marker='o')
+            # print(orientation7[:, i])
+            rotation_matrix = gu.rpy_matrix(*orientation7[:, i]) * orientation_scale
+            ax.plot([pos[0, 7], pos[0, 7] + rotation_matrix[0, 0]], [pos[1, 7], pos[1, 7] + rotation_matrix[1, 0]], [pos[2, 7], pos[2, 7] + rotation_matrix[2, 0]], color='red', linewidth=2, marker='o')
+            ax.plot([pos[0, 7], pos[0, 7] + rotation_matrix[0, 1]], [pos[1, 7], pos[1, 7] + rotation_matrix[1, 1]], [pos[2, 7], pos[2, 7] + rotation_matrix[2, 1]], color='green', linewidth=2, marker='o')
+            ax.plot([pos[0, 7], pos[0, 7] + rotation_matrix[0, 2]], [pos[1, 7], pos[1, 7] + rotation_matrix[1, 2]], [pos[2, 7], pos[2, 7] + rotation_matrix[2, 2]], color='blue', linewidth=2, marker='o')
             plt.ylim(min_y, max_y)
             plt.xlim(min_x, max_x)
             # plt.zlim(min_z, max_z)
