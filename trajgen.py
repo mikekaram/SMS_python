@@ -130,159 +130,159 @@ def angle_axis_generation(time_step, tf, Delta, Ri, Rf):
     return theta, d_theta, r, time
 
 
-def euler_angles_generation(time_step, tf, Delta, theta0, thetaf):
-    time = np.arange(0, tf + time_step, time_step)
-    # Wrap angles to [-pi,pi)
-    theta0 = ikpy.geometry_utils.wrap_to_pi(theta0)
-    # theta0 = (theta0 + np.pi) % (2 * np.pi) - np.pi
-    thetaf = ikpy.geometry_utils.wrap_to_pi(thetaf)
-    # The answer to the below code is this: https://stackoverflow.com/questions/1878907/the-smallest-difference-between-2-angles
-    if (thetaf[0] >= theta0[0] and (ikpy.geometry_utils.angle_difference(thetaf[0], theta0[0]) < 0)):
-        theta0[0] = theta0[0] + 2 * np.pi
-    elif (thetaf[0] < theta0[0] and (ikpy.geometry_utils.angle_difference(thetaf[0], theta0[0]) > 0)):
-        theta0[0] = theta0[0] - 2 * np.pi
-    if (thetaf[1] >= theta0[1] and (ikpy.geometry_utils.angle_difference(thetaf[1], theta0[1]) < 0)):
-        theta0[1] = theta0[1] + 2 * np.pi
-    elif (thetaf[1] < theta0[1] and (ikpy.geometry_utils.angle_difference(thetaf[1], theta0[1]) > 0)):
-        theta0[1] = theta0[1] - 2 * np.pi
-    if (thetaf[2] >= theta0[2] and (ikpy.geometry_utils.angle_difference(thetaf[2], theta0[2]) < 0)):
-        theta0[2] = theta0[2] + 2 * np.pi
-    elif (thetaf[2] < theta0[2] and (ikpy.geometry_utils.angle_difference(thetaf[2], theta0[2]) > 0)):
-        theta0[2] = theta0[2] - 2 * np.pi
+# def euler_angles_generation(time_step, tf, Delta, theta0, thetaf):
+#     time = np.arange(0, tf + time_step, time_step)
+#     # Wrap angles to [-pi,pi)
+#     theta0 = ikpy.geometry_utils.wrap_to_pi(theta0)
+#     # theta0 = (theta0 + np.pi) % (2 * np.pi) - np.pi
+#     thetaf = ikpy.geometry_utils.wrap_to_pi(thetaf)
+#     # The answer to the below code is this: https://stackoverflow.com/questions/1878907/the-smallest-difference-between-2-angles
+#     if (thetaf[0] >= theta0[0] and (ikpy.geometry_utils.angle_difference(thetaf[0], theta0[0]) < 0)):
+#         theta0[0] = theta0[0] + 2 * np.pi
+#     elif (thetaf[0] < theta0[0] and (ikpy.geometry_utils.angle_difference(thetaf[0], theta0[0]) > 0)):
+#         theta0[0] = theta0[0] - 2 * np.pi
+#     if (thetaf[1] >= theta0[1] and (ikpy.geometry_utils.angle_difference(thetaf[1], theta0[1]) < 0)):
+#         theta0[1] = theta0[1] + 2 * np.pi
+#     elif (thetaf[1] < theta0[1] and (ikpy.geometry_utils.angle_difference(thetaf[1], theta0[1]) > 0)):
+#         theta0[1] = theta0[1] - 2 * np.pi
+#     if (thetaf[2] >= theta0[2] and (ikpy.geometry_utils.angle_difference(thetaf[2], theta0[2]) < 0)):
+#         theta0[2] = theta0[2] + 2 * np.pi
+#     elif (thetaf[2] < theta0[2] and (ikpy.geometry_utils.angle_difference(thetaf[2], theta0[2]) > 0)):
+#         theta0[2] = theta0[2] - 2 * np.pi
 
-    lamda_a = float((thetaf[0] - theta0[0])) / tf
-    lamda_b = float((thetaf[1] - theta0[1])) / tf
-    lamda_c = float((thetaf[2] - theta0[2])) / tf
+#     lamda_a = float((thetaf[0] - theta0[0])) / tf
+#     lamda_b = float((thetaf[1] - theta0[1])) / tf
+#     lamda_c = float((thetaf[2] - theta0[2])) / tf
 
-    flag2 = lamda_a == 0
+#     flag2 = lamda_a == 0
 
-    flag3 = lamda_b == 0
-    flag4 = lamda_c == 0
+#     flag3 = lamda_b == 0
+#     flag4 = lamda_c == 0
 
-    if flag2:
-        if flag3:
-            if flag4:
-                theta_d = np.zeros((3, len(time)))
-                dtheta_d = np.zeros((3, len(time)))
-                ddtheta_d = np.zeros((3, len(time)))
-                print("No change in orientation!")
-                return theta_d, time
-            else:
-                theta_zero = theta0[2]
-                theta_final = thetaf[2]
-        else:
-            theta_zero = theta0[1]
-            theta_final = thetaf[1]
-    else:
-        theta_zero = theta0[0]
-        theta_final = thetaf[0]
+#     if flag2:
+#         if flag3:
+#             if flag4:
+#                 theta_d = np.zeros((3, len(time)))
+#                 dtheta_d = np.zeros((3, len(time)))
+#                 ddtheta_d = np.zeros((3, len(time)))
+#                 print("No change in orientation!")
+#                 return theta_d, time
+#             else:
+#                 theta_zero = theta0[2]
+#                 theta_final = thetaf[2]
+#         else:
+#             theta_zero = theta0[1]
+#             theta_final = thetaf[1]
+#     else:
+#         theta_zero = theta0[0]
+#         theta_final = thetaf[0]
 
-    if (Delta >= .5 * (tf - time[0])):
-        print('The input you gave is not valid')
-        exit(0)
-    dtheta = float((theta_final - theta_zero)) / (tf - 2 * Delta)
-    # print(dtheta)
-    thetaf1 = theta_final - dtheta * Delta
-    theta02 = theta_zero + dtheta * Delta
-    # print(thetaf1)
-    # print(theta02)
-    A1 = np.array([x(0), x(2 * Delta), dx(0), dx(2 * Delta), dxdx(0), dxdx(2 * Delta)])
-    B1 = np.array([theta_zero, theta02, 0, dtheta, 0, 0])
-    sol1 = np.linalg.solve(A1, B1)
-    # print(sol1)
-    A2 = np.array([x_l(2 * Delta), [0, 1]])
-    B2 = np.array([theta02, dtheta])
-    sol2 = np.linalg.solve(A2, B2)
-    # print(sol2)
-    A3 = np.array([x(tf - 2 * Delta), x(tf), dx(tf - 2 * Delta), dx(tf), dxdx(tf - 2 * Delta), dxdx(tf)])
-    B3 = np.array([thetaf1, theta_final, dtheta, 0, 0, 0])
-    sol3 = np.linalg.solve(A3, B3)
-    # print(sol3)
-    theta = np.zeros(len(time))
-    d_theta = np.zeros(len(time))
-    dd_theta = np.zeros(len(time))
-    theta_d = np.zeros((3, len(time)))
-    dtheta_d = np.zeros((3, len(time)))
-    ddtheta_d = np.zeros((3, len(time)))
-    for j in range(0, len(time)):
-        if (j * time_step <= 2 * Delta):
-            theta[j] = np.dot(x(time[j]), sol1)
+#     if (Delta >= .5 * (tf - time[0])):
+#         print('The input you gave is not valid')
+#         exit(0)
+#     dtheta = float((theta_final - theta_zero)) / (tf - 2 * Delta)
+#     # print(dtheta)
+#     thetaf1 = theta_final - dtheta * Delta
+#     theta02 = theta_zero + dtheta * Delta
+#     # print(thetaf1)
+#     # print(theta02)
+#     A1 = np.array([x(0), x(2 * Delta), dx(0), dx(2 * Delta), dxdx(0), dxdx(2 * Delta)])
+#     B1 = np.array([theta_zero, theta02, 0, dtheta, 0, 0])
+#     sol1 = np.linalg.solve(A1, B1)
+#     # print(sol1)
+#     A2 = np.array([x_l(2 * Delta), [0, 1]])
+#     B2 = np.array([theta02, dtheta])
+#     sol2 = np.linalg.solve(A2, B2)
+#     # print(sol2)
+#     A3 = np.array([x(tf - 2 * Delta), x(tf), dx(tf - 2 * Delta), dx(tf), dxdx(tf - 2 * Delta), dxdx(tf)])
+#     B3 = np.array([thetaf1, theta_final, dtheta, 0, 0, 0])
+#     sol3 = np.linalg.solve(A3, B3)
+#     # print(sol3)
+#     theta = np.zeros(len(time))
+#     d_theta = np.zeros(len(time))
+#     dd_theta = np.zeros(len(time))
+#     theta_d = np.zeros((3, len(time)))
+#     dtheta_d = np.zeros((3, len(time)))
+#     ddtheta_d = np.zeros((3, len(time)))
+#     for j in range(0, len(time)):
+#         if (j * time_step <= 2 * Delta):
+#             theta[j] = np.dot(x(time[j]), sol1)
 
-            d_theta[j] = np.dot(dx(time[j]), sol1)
-            dd_theta[j] = np.dot(dxdx(time[j]), sol1)
-        else:
-            if (j * time_step > 2 * Delta and j * time_step <= tf - 2 * Delta):
-                theta[j] = np.dot(x_l(time[j]), sol2)
-                d_theta[j] = np.dot([0, 1], sol2)
-                dd_theta[j] = np.dot([0, 0], sol2)
+#             d_theta[j] = np.dot(dx(time[j]), sol1)
+#             dd_theta[j] = np.dot(dxdx(time[j]), sol1)
+#         else:
+#             if (j * time_step > 2 * Delta and j * time_step <= tf - 2 * Delta):
+#                 theta[j] = np.dot(x_l(time[j]), sol2)
+#                 d_theta[j] = np.dot([0, 1], sol2)
+#                 dd_theta[j] = np.dot([0, 0], sol2)
 
-            else:
-                theta[j] = np.dot(x(time[j]), sol3)
-                d_theta[j] = np.dot(dx(time[j]), sol3)
-                dd_theta[j] = np.dot(dxdx(time[j]), sol3)
-    # print(theta)
-    if flag2:
-        if flag3:
-            theta_d[2, :] = theta
-            dtheta_d[2, :] = d_theta
-            ddtheta_d[2, :] = dd_theta
-        else:
-            theta_d[1, :] = theta
-            dtheta_d[1, :] = d_theta
-            ddtheta_d[1, :] = dd_theta
-    else:
-        theta_d[0, :] = theta
-        dtheta_d[0, :] = d_theta
-        ddtheta_d[0, :] = dd_theta
+#             else:
+#                 theta[j] = np.dot(x(time[j]), sol3)
+#                 d_theta[j] = np.dot(dx(time[j]), sol3)
+#                 dd_theta[j] = np.dot(dxdx(time[j]), sol3)
+#     # print(theta)
+#     if flag2:
+#         if flag3:
+#             theta_d[2, :] = theta
+#             dtheta_d[2, :] = d_theta
+#             ddtheta_d[2, :] = dd_theta
+#         else:
+#             theta_d[1, :] = theta
+#             dtheta_d[1, :] = d_theta
+#             ddtheta_d[1, :] = dd_theta
+#     else:
+#         theta_d[0, :] = theta
+#         dtheta_d[0, :] = d_theta
+#         ddtheta_d[0, :] = dd_theta
 
-    # print(d_theta)
-    # print(dd_theta)
-    # fig1 = plt.figure()
-    # ax1 = fig1.gca(projection='3d')
-    # plt.ion()
-    for j in range(0, len(time)):
+#     # print(d_theta)
+#     # print(dd_theta)
+#     # fig1 = plt.figure()
+#     # ax1 = fig1.gca(projection='3d')
+#     # plt.ion()
+#     for j in range(0, len(time)):
 
-        if flag2:
-            if flag3:
-                theta_d[0, j] = theta0[0]
-                theta_d[1, j] = theta0[1]
-            else:
-                theta_d[0, j] = theta0[0]
-                if flag4:
-                    theta_d[2, j] = theta0[2]
-                else:
-                    theta_d[2, j] = lamda_c * (theta_d[1, j] - theta0[1]) / lamda_b + theta0[2]
-        else:
-            theta_d[1, j] = lamda_b * (theta_d[0, j] - theta0[0]) / lamda_a + theta0[1]
-            theta_d[2, j] = lamda_c * (theta_d[0, j] - theta0[0]) / lamda_a + theta0[2]
-    #     if(j % 2 == 0):
-    #         ax1.scatter(theta_d[0, j], theta_d[1, j], theta_d[2, j], '-.ob')
-    #         # axis([x_lim y_lim z_lim])
-    #         ax1.title.set_text('3D Trajectory Generated')
-    #         ax1.set_xlabel('a(rad)')
-    #         ax1.set_ylabel('b(rad)')
-    #         ax1.set_zlabel('c(rad)')
-    #         plt.draw()
-    #         plt.show()
-    #         plt.pause(0.05)
-    # # plt.hold(False)
-    # plt.ioff()
-    # print(len(time))
-    # fig2 = plt.figure()
-    # ax2 = fig2.gca()
-    # ax2.plot(time, theta, label="orientation", color='b')
-    # ax2.plot(time, d_theta, label="1st derivative", color='y')
-    # ax2.plot(time, dd_theta, label="2nd derivative", color='r')
-    # ax2.title.set_text('Trajectory with derivatives')
-    # ax2.legend()
-    # ax2.set_xlabel('time(sec)')
-    # plt.draw()
-    # plt.show()
+#         if flag2:
+#             if flag3:
+#                 theta_d[0, j] = theta0[0]
+#                 theta_d[1, j] = theta0[1]
+#             else:
+#                 theta_d[0, j] = theta0[0]
+#                 if flag4:
+#                     theta_d[2, j] = theta0[2]
+#                 else:
+#                     theta_d[2, j] = lamda_c * (theta_d[1, j] - theta0[1]) / lamda_b + theta0[2]
+#         else:
+#             theta_d[1, j] = lamda_b * (theta_d[0, j] - theta0[0]) / lamda_a + theta0[1]
+#             theta_d[2, j] = lamda_c * (theta_d[0, j] - theta0[0]) / lamda_a + theta0[2]
+#     #     if(j % 2 == 0):
+#     #         ax1.scatter(theta_d[0, j], theta_d[1, j], theta_d[2, j], '-.ob')
+#     #         # axis([x_lim y_lim z_lim])
+#     #         ax1.title.set_text('3D Trajectory Generated')
+#     #         ax1.set_xlabel('a(rad)')
+#     #         ax1.set_ylabel('b(rad)')
+#     #         ax1.set_zlabel('c(rad)')
+#     #         plt.draw()
+#     #         plt.show()
+#     #         plt.pause(0.05)
+#     # # plt.hold(False)
+#     # plt.ioff()
+#     # print(len(time))
+#     # fig2 = plt.figure()
+#     # ax2 = fig2.gca()
+#     # ax2.plot(time, theta, label="orientation", color='b')
+#     # ax2.plot(time, d_theta, label="1st derivative", color='y')
+#     # ax2.plot(time, dd_theta, label="2nd derivative", color='r')
+#     # ax2.title.set_text('Trajectory with derivatives')
+#     # ax2.legend()
+#     # ax2.set_xlabel('time(sec)')
+#     # plt.draw()
+#     # plt.show()
 
-    # plt.hold(True)
-    # plt.close(fig1)
-    # plt.close(fig2)
-    return theta_d, time
+#     # plt.hold(True)
+#     # plt.close(fig1)
+#     # plt.close(fig2)
+#     return theta_d, time
 
 
 def line_generation(time_step, tf, Delta, p0, pf):
@@ -432,14 +432,218 @@ def line_generation(time_step, tf, Delta, p0, pf):
     return p_d, dp_d, time
 
 
-def trajectory_generation(time_step, tf, Delta, Transposition0, Transpositionf):
+def circle_generation(time_step, tf, Delta, p0, pf, pm):
+
+    time = np.arange(0, tf + time_step, time_step)
+    # helix code
+    # r = 5
+    # alpha = 5
+    lamda_x = float((pf[0] - p0[0])) / tf
+    lamda_y = float((pf[1] - p0[1])) / tf
+    lamda_z = float((pf[2] - p0[2])) / tf
+    epsilon = 1e-10
+    flag2 = lamda_x == 0
+    flag3 = lamda_y == 0
+    flag4 = lamda_z == 0
+    flag5 = np.linalg.norm(p0 - pm) < epsilon
+    flag6 = np.linalg.norm(pm - pf) < epsilon
+    # p0 = np.array(p0)
+    # pf = np.array(pf)
+    # pm = np.array(pm)
+    print(p0, pf, pm)
+    if flag5 or flag6:
+        print("You should give 3 different points\n")
+        exit(0)
+    if flag2:
+        if flag3:
+            if flag4:
+                print('Wrong Starting and Final Points: ABORTING\n')
+                exit(0)
+    #         else:
+    #             p_zero = p0[2]
+    #             p_final = pf[2]
+    #     else:
+    #         p_zero = p0[1]
+    #         p_final = pf[1]
+    # else:
+    #     p_zero = p0[0]
+    #     p_final = pf[0]
+    n_prp = np.cross(pf - p0, pm - p0)
+    w = n_prp / np.linalg.norm(n_prp)
+    d_plane = - np.inner(n_prp, pf)
+    print(n_prp, d_plane, w)
+    # exit(0)
+    A = np.array([[2 * (p0[0] - pf[0] - n_prp[0] / n_prp[2] * (p0[2] - pf[2])), 2 * (p0[1] - pf[1] - n_prp[1] / n_prp[2] * (p0[2] - pf[2]))], [2 * (p0[0] - pm[0] - n_prp[0] / n_prp[2] * (p0[2] - pm[2])), 2 * (p0[1] - pm[1] - n_prp[1] / n_prp[2] * (p0[2] - pm[2]))]])
+    B = np.array([[p0[0]**2 - pf[0]**2 + p0[1]**2 - pf[1]**2 + p0[2]**2 - pf[2]**2 + 2 * d_plane / n_prp[2] * (p0[2] - pf[2])], [p0[0]**2 - pm[0]**2 + p0[1]**2 - pm[1]**2 + p0[2]**2 - pm[2]**2 + 2 * d_plane / n_prp[2] * (p0[2] - pm[2])]])
+    print(A, B)
+
+    pcenter = np.zeros(3)
+    pcenter[:2] = np.linalg.solve(A, B).ravel()
+    # print(pcenter)
+    # exit(0)
+    pcenter[2] = -(d_plane + n_prp[0] * pcenter[0] + n_prp[1] * pcenter[1]) / n_prp[2]
+    Rcenter = np.linalg.norm(p0 - pcenter)
+    print(pcenter, Rcenter)
+    u = (p0 - pcenter) / np.linalg.norm(p0 - pcenter)
+    v = np.cross(u, w)
+    print(u, v, w)
+    R_plane = np.vstack((u, v, w)).T
+    print(R_plane)
+    # exit(0)
+    # print(np.linalg.norm(pf - pcenter), np.linalg.norm(pm - pcenter))
+    # exit(0)
+    # theta_offset = np.arccos((p0 - pcenter) / Rcenter)
+    # theta_offset_1 = np.arcsin((p0[1] - pcenter[1]) / Rcenter)
+    # print(theta_offset, theta_offset_1)
+    theta_zero = 0
+    theta_zero_final = np.arccos(np.inner(p0 - pcenter, pf - pcenter) / (np.linalg.norm(p0 - pcenter) * np.linalg.norm(pf - pcenter)))
+    theta_zero_middle = np.arccos(np.inner(p0 - pcenter, pm - pcenter) / (np.linalg.norm(p0 - pcenter) * np.linalg.norm(pm - pcenter)))
+    theta_middle_final = np.arccos(np.inner(pm - pcenter, pf - pcenter) / (np.linalg.norm(pm - pcenter) * np.linalg.norm(pf - pcenter)))
+    print(theta_zero_final, theta_zero_middle, theta_middle_final)
+
+    theta_final = theta_zero_final if theta_zero_middle + theta_middle_final <= np.pi else 2 * np.pi - theta_zero_final
+    print(theta_final)
+    pf_from_plane = pcenter[:2] + np.dot(R_plane[:2, :2], np.array([Rcenter * np.cos(theta_final), Rcenter * np.sin(theta_final)]))
+    zf_from_plane = -(d_plane + n_prp[0] * pf_from_plane[0] + n_prp[1] * pf_from_plane[1]) / n_prp[2]
+    print(pf_from_plane, zf_from_plane)
+    # exit(0)
+    if (Delta >= .5 * (tf - time[0])):
+        print('The input you gave is not valid')
+        exit(0)
+    dtheta = float((theta_final - theta_zero)) / (tf - 2 * Delta)
+    # print(dtheta)
+    thetaf1 = theta_final - dtheta * Delta
+    theta02 = theta_zero + dtheta * Delta
+    # print(thetaf1)
+    # print(theta02)
+    A1 = np.array([x(0), x(2 * Delta), dx(0), dx(2 * Delta), dxdx(0), dxdx(2 * Delta)])
+    B1 = np.array([theta_zero, theta02, 0, dtheta, 0, 0])
+    sol1 = np.linalg.solve(A1, B1)
+    # print(sol1)
+    A2 = np.array([x_l(2 * Delta), [0, 1]])
+    B2 = np.array([theta02, dtheta])
+    sol2 = np.linalg.solve(A2, B2)
+    # print(sol2)
+    A3 = np.array([x(tf - 2 * Delta), x(tf), dx(tf - 2 * Delta), dx(tf), dxdx(tf - 2 * Delta), dxdx(tf)])
+    B3 = np.array([thetaf1, theta_final, dtheta, 0, 0, 0])
+    sol3 = np.linalg.solve(A3, B3)
+    # print(sol3)
+    p_d = np.zeros((3, len(time)))
+    dp_d = np.zeros((3, len(time)))
+    ddp_d = np.zeros((3, len(time)))
+    theta = np.zeros(len(time))
+    d_theta = np.zeros(len(time))
+    dd_theta = np.zeros(len(time))
+    for j in range(0, len(time)):
+        if (j * time_step <= 2 * Delta):
+            theta[j] = np.dot(x(time[j]), sol1)
+            d_theta[j] = np.dot(dx(time[j]), sol1)
+            dd_theta[j] = np.dot(dxdx(time[j]), sol1)
+        else:
+            if (j * time_step > 2 * Delta and j * time_step <= tf - 2 * Delta):
+                theta[j] = np.dot(x_l(time[j]), sol2)
+                d_theta[j] = np.dot([0, 1], sol2)
+                dd_theta[j] = np.dot([0, 0], sol2)
+
+            else:
+                theta[j] = np.dot(x(time[j]), sol3)
+                d_theta[j] = np.dot(dx(time[j]), sol3)
+                dd_theta[j] = np.dot(dxdx(time[j]), sol3)
+        print(theta[j])
+
+    # fig1 = plt.figure()
+    # ax1 = fig1.gca(projection='3d')
+    # plt.ion()
+    for j in range(0, len(time)):
+            # draw 3D line:
+        # if flag2:
+        #     if flag3:
+        #         p_d[0, j] = p0[0]
+        #         p_d[1, j] = p0[1]
+        #     else:
+        #         p_d[0, j] = p0[0]
+        #         if flag4:
+        #             p_d[2, j] = p0[2]
+        #         else:
+        #             p_d[2, j] = lamda_z * (p_d[1, j] - p0[1]) / lamda_y + p0[2]
+        #             dp_d[2, j] = lamda_z * (dp_d[1, j]) / lamda_y
+        #             ddp_d[2, j] = lamda_z * (ddp_d[1, j]) / lamda_y
+
+        # else:
+        #     p_d[1, j] = lamda_y * (p_d[0, j] - p0[0]) / lamda_x + p0[1]
+        #     p_d[2, j] = lamda_z * (p_d[0, j] - p0[0]) / lamda_x + p0[2]
+        #     dp_d[1, j] = lamda_y * (dp_d[0, j]) / lamda_x
+        #     dp_d[2, j] = lamda_z * (dp_d[0, j]) / lamda_x
+        #     ddp_d[1, j] = lamda_y * (ddp_d[0, j]) / lamda_x
+        #     ddp_d[2, j] = lamda_z * (ddp_d[0, j]) / lamda_x
+        # p_d[0, j] = pcenter[0] + Rcenter * np.cos(theta[j])
+        # p_d[1, j] = pcenter[1] + Rcenter * np.sin(theta[j])
+        # p_d[2, j] = -(d_plane + n_prp[0] * p_d[0, j] + n_prp[1] * p_d[1, j]) / n_prp[2]
+        x_plane = Rcenter * np.cos(theta[j])
+        y_plane = Rcenter * np.sin(theta[j])
+        p_plane = np.array([x_plane, y_plane])
+        p_d[:2, j] = pcenter[:2] + np.dot(R_plane[:2, :2], p_plane)
+        p_d[2, j] = -(d_plane + n_prp[0] * p_d[0, j] + n_prp[1] * p_d[1, j]) / n_prp[2]
+        dx_plane = -Rcenter * np.sin(theta[j]) * d_theta[j]
+        dy_plane = Rcenter * np.cos(theta[j]) * d_theta[j]
+        dp_plane = np.array([dx_plane, dy_plane])
+        dp_d[:2, j] = np.dot(R_plane[:2, :2], dp_plane)
+        dp_d[2, j] = -(n_prp[0] * dp_d[0, j] + n_prp[1] * dp_d[1, j]) / n_prp[2]
+        ddx_plane = -Rcenter * np.cos(theta[j]) * dd_theta[j]
+        ddy_plane = -Rcenter * np.sin(theta[j]) * dd_theta[j]
+        ddp_plane = np.array([ddx_plane, ddy_plane])
+        ddp_d[:2, j] = np.dot(R_plane[:2, :2], ddp_plane)
+        ddp_d[2, j] = -(n_prp[0] * ddp_d[0, j] + n_prp[1] * ddp_d[1, j]) / n_prp[2]
+        # dp_d[0, j] = -Rcenter * np.sin(theta[j]) * d_theta[j]
+        # dp_d[1, j] = Rcenter * np.cos(theta[j]) * d_theta[j]
+        # dp_d[2, j] = -(n_prp[0] * dp_d[0, j] + n_prp[1] * dp_d[1, j]) / n_prp[2]
+        # ddp_d[0, j] = -Rcenter * np.cos(theta[j]) * dd_theta[j]
+        # ddp_d[1, j] = -Rcenter * np.sin(theta[j]) * dd_theta[j]
+        # ddp_d[2, j] = -(n_prp[0] * ddp_d[0, j] + n_prp[1] * ddp_d[1, j]) / n_prp[2]
+    #     if(j % 2 == 0):
+    #         ax1.scatter(p_d[0, j], p_d[1, j], p_d[2, j], '-.ob')
+    #         # axis([x_lim y_lim z_lim])
+    #         ax1.title.set_text('3D Trajectory Generated')
+    #         ax1.set_xlabel('x(m)')
+    #         ax1.set_ylabel('y(m)')
+    #         ax1.set_zlabel('z(m)')
+    #         ax1.set_xlim([-0.5, 0.5])
+    #         ax1.set_ylim([-0.5, 0.5])
+    #         ax1.set_zlim([-0.5, 0.5])
+    #         plt.draw()
+    #         plt.show()
+    #         plt.pause(0.05)
+    # print(p_d[0, :])
+    # print(p_d[1, :])
+    # print(p_d[2, :])
+    # # plt.hold(False)
+    # plt.ioff()
+    # # print(len(time))
+    # fig2 = plt.figure()
+    # ax2 = fig2.gca()
+    # ax2.plot(time, p_d[0, :], label="trajectory", color='b')
+    # ax2.plot(time, dp_d[0, :], label="1st derivative", color='y')
+    # ax2.plot(time, ddp_d[0, :], label="2nd derivative", color='r')
+    # ax2.title.set_text('Trajectory with derivatives')
+    # ax2.legend()
+    # ax2.set_xlabel('time(sec)')
+    # plt.draw()
+    # plt.show()
+
+    # plt.hold(True)
+    # plt.close(fig1)
+    # plt.close(fig2)
+    return p_d, dp_d, time
+
+
+def trajectory_generation(time_step, tf, Delta, Transposition0, Transpositionf, pm):
     # a1, b1, c1 = ikpy.geometry_utils.angles_from_rotation_matrix(Transposition0[:3, :3])
     # a2, b2, c2 = ikpy.geometry_utils.angles_from_rotation_matrix(Transpositionf[:3, :3])
     # theta_desired, r, time = angle_axis_generation(time_step, tf, Delta, np.array([a1, b1, c1]), np.array([a2, b2, c2]))
     theta_desired, dtheta_desired, r, time = angle_axis_generation(time_step, tf, Delta, Transposition0[:3, :3], Transpositionf[:3, :3])
     theta_desired = np.array([theta_desired])
     dtheta_desired = np.array([dtheta_desired])
-    p_desired, dp_desired, time = line_generation(time_step, tf, Delta, Transposition0[:3, 3], Transpositionf[:3, 3])
+    p_desired, dp_desired, time = circle_generation(time_step, tf, Delta, Transposition0[:3, 3], Transpositionf[:3, 3], pm)
     print(dp_desired.shape)
     print(dtheta_desired.shape)
     transposition_desired = np.concatenate((p_desired, theta_desired))

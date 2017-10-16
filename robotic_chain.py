@@ -58,10 +58,34 @@ class Robot_Chain(object):
         print(p0_frame)
         print(pf_frame)
         tf = 10
-        dt = 0.1
+        dt = 0.2
         Delta = 0.1 * tf
         # eps = 1e-10
         t_d, dt_d, r, simulation_time = tg.trajectory_generation(dt, tf, Delta, p0_frame, pf_frame)
+        # print(gu.rotation_matrix_from_angle_axis(t_d[3, -1], *r))
+        # print(np.dot(p0_frame[:3, :3], gu.rotation_matrix_from_angle_axis(t_d[3, -1], *r)))
+        # return 0
+        q, q_d = self.motion_control(p0_frame, pf_frame, t_d, dt_d, r, simulation_time, dt)
+        # for i, motor in enumerate(self.motors):
+        #     print(int(gu.angle_to_ticks(q[i, :], motor.resolution_bits)))
+        # self.animate_move(q, q_d, p0_frame, pf_frame, simulation_time)
+
+    def move_circ(self, pm, pf, a, b, c):
+        p0_frame = self.robot_chain.forward_kinematics([0] * 7)
+        # p0_frame = self.robot_chain.forward_kinematics(self.get_actual_position())
+        # p0_frame[:3, 3] = [0, 0, 0]
+        pf_frame = np.eye(4)
+        pf_frame[:3, :3] = gu.rpy_matrix(a, b, c)
+        # pf_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+        pf_vector = pf
+        pf_frame[:3, 3] = pf_vector
+        print(p0_frame)
+        # print(pf_frame)
+        tf = 10
+        dt = 0.2
+        Delta = 0.1 * tf
+        # eps = 1e-10
+        t_d, dt_d, r, simulation_time = tg.trajectory_generation(dt, tf, Delta, p0_frame, pf_frame, pm)
         # print(gu.rotation_matrix_from_angle_axis(t_d[3, -1], *r))
         # print(np.dot(p0_frame[:3, :3], gu.rotation_matrix_from_angle_axis(t_d[3, -1], *r)))
         # return 0
@@ -73,7 +97,7 @@ class Robot_Chain(object):
     def motion_control(self, p0_frame, pf_frame, t_d, dt_d, r, simulation_time, dt):
 
         damping = 0.005
-        K_o = 5
+        K_o = 7
         K_p = 2 * np.eye(3)
         q_0 = self.robot_chain.inverse_kinematics(p0_frame)
         # q_0 = self.get_actual_position()
@@ -120,41 +144,45 @@ class Robot_Chain(object):
             q_next = q_prev + np.insert(qdot, 0, 0) * dt
             q[:, i + 1] = q_next
             q_d[:, i] = qdot.ravel()
-            if i % 3 == 0:
-                self.move_motors(q_prev[1:], q_d[:, i])
+            # if i % 1 == 0:
+            #     self.move_motors(q_prev[1:], q_d[:, i])
             q_prev = q_next
             print("Elapsed time is: " + str(time.time() - t))
         # self.move_motors([0] * 6, [0] * 6)
         return q, q_d
 
     def move_motors(self, q, q_dot):
-        rate = 1.0 / 4.46
+        rate = 2.0 / 4.0
         # print(q_dot)
         for i, motor in enumerate(self.motors):
-            # f = int(gu.angle_to_ticks(q_dot[i], motor.resolution_bits) * rate)
+            f = int(gu.angle_to_ticks(q_dot[i], motor.resolution_bits) * rate)
             # d = int(gu.angle_to_ticks(q[i], motor.resolution_bits))
-            # if i == 3:
-            # motor.setProfiledAbsolutePositionSetpoint(-d)
-            # print(f)
-            # motor.setVelocitySetpoint(-f)
+            # print(d)
+            if i == 4:
+                # motor.setProfiledAbsolutePositionSetpoint(-d)
+                # print(f)
+                motor.setVelocitySetpoint(-f)
             # elif i == 3:
             # motor.setProfiledAbsolutePositionSetpoint((-1) * int(gu.angle_to_ticks(q[i], motor.resolution_bits)))
-            # else:
-            # motor.setProfiledAbsolutePositionSetpoint(d)
-            # print(int(gu.angle_to_ticks(q_dot[i], motor.resolution_bits) * rate))
-            motor.setVelocitySetpoint(f)
-            # t.sleep(0.005)
+            else:
+                # motor.setProfiledAbsolutePositionSetpoint(d)
+                # print(int(gu.angle_to_ticks(q_dot[i], motor.resolution_bits) * rate))
+                motor.setVelocitySetpoint(f)
+            t.sleep(0.005)
         sms.broadcastDoMove()
         # t.sleep(2)
 
     def homing(self):
         ticks_to_go = np.zeros((6, 1))
+        for i, motor in enumerate(self.motors):
+            motor.resetErrors()
         sms.broadcastStart()
         t.sleep(0.02)
         absolute_positions_entry_positions = np.zeros((6, 1))
         for i, motor in enumerate(self.motors):
-            mId = motor.motorId
+            # mId = motor.motorId
             # print(i, mId)
+            # motor.resetErrors()
             absolute_positions_entry_positions[i] = motor.getAbsolutePosition()[1]
             # print(absolute_positions_entry_positions)
             t.sleep(0.01)

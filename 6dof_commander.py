@@ -26,7 +26,9 @@ t.sleep(2)
 # # sms.broadcastStop()
 robot = r_chain.Robot_Chain("6dof_description.urdf", motors)
 # robot.homing()
-of = [0, 0, 0]
-# of = [0, 0, 0]
-pf = [0.1, 0, 0.1]
-robot.move_xyz_abc(pf, *of)
+of = [-np.pi / 2, 0, 0]
+# pf = [0.06, -0.19, 0.06]
+pf = [-0.14, -0.03, 0.2]
+pm = [0.02, -0.02, 0.30]
+# robot.move_xyz_abc(pf, *of)
+robot.move_circ(pm, pf, *of)
