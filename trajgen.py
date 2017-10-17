@@ -447,6 +447,9 @@ def circle_generation(time_step, tf, Delta, p0, pf, pm):
     flag4 = lamda_z == 0
     flag5 = np.linalg.norm(p0 - pm) < epsilon
     flag6 = np.linalg.norm(pm - pf) < epsilon
+    n_prp_has_z = False
+    n_prp_in_y = False
+    n_prp_in_xy = False
     # p0 = np.array(p0)
     # pf = np.array(pf)
     # pm = np.array(pm)
@@ -468,24 +471,41 @@ def circle_generation(time_step, tf, Delta, p0, pf, pm):
     # else:
     #     p_zero = p0[0]
     #     p_final = pf[0]
-    n_prp = np.cross(pf - p0, pm - p0)
+    n_prp = np.cross(pm - p0, pf - p0)
     w = n_prp / np.linalg.norm(n_prp)
     d_plane = - np.inner(n_prp, pf)
-    print(n_prp, d_plane, w)
-    # exit(0)
-    A = np.array([[2 * (p0[0] - pf[0] - n_prp[0] / n_prp[2] * (p0[2] - pf[2])), 2 * (p0[1] - pf[1] - n_prp[1] / n_prp[2] * (p0[2] - pf[2]))], [2 * (p0[0] - pm[0] - n_prp[0] / n_prp[2] * (p0[2] - pm[2])), 2 * (p0[1] - pm[1] - n_prp[1] / n_prp[2] * (p0[2] - pm[2]))]])
-    B = np.array([[p0[0]**2 - pf[0]**2 + p0[1]**2 - pf[1]**2 + p0[2]**2 - pf[2]**2 + 2 * d_plane / n_prp[2] * (p0[2] - pf[2])], [p0[0]**2 - pm[0]**2 + p0[1]**2 - pm[1]**2 + p0[2]**2 - pm[2]**2 + 2 * d_plane / n_prp[2] * (p0[2] - pm[2])]])
-    print(A, B)
+    if(abs(w[2]) < epsilon):
+        if(abs(w[0]) < epsilon):
+            n_prp_in_y = True
+        else:
+            n_prp_in_xy = True
+    else:
+        n_prp_has_z = True
 
+    print(n_prp, d_plane, w)
     pcenter = np.zeros(3)
-    pcenter[:2] = np.linalg.solve(A, B).ravel()
-    # print(pcenter)
-    # exit(0)
-    pcenter[2] = -(d_plane + n_prp[0] * pcenter[0] + n_prp[1] * pcenter[1]) / n_prp[2]
+    if n_prp_has_z:
+        A = np.array([[2 * (p0[0] - pf[0] - n_prp[0] / n_prp[2] * (p0[2] - pf[2])), 2 * (p0[1] - pf[1] - n_prp[1] / n_prp[2] * (p0[2] - pf[2]))], [2 * (p0[0] - pm[0] - n_prp[0] / n_prp[2] * (p0[2] - pm[2])), 2 * (p0[1] - pm[1] - n_prp[1] / n_prp[2] * (p0[2] - pm[2]))]])
+        B = np.array([[p0[0]**2 - pf[0]**2 + p0[1]**2 - pf[1]**2 + p0[2]**2 - pf[2]**2 + 2 * d_plane / n_prp[2] * (p0[2] - pf[2])], [p0[0]**2 - pm[0]**2 + p0[1]**2 - pm[1]**2 + p0[2]**2 - pm[2]**2 + 2 * d_plane / n_prp[2] * (p0[2] - pm[2])]])
+        pcenter[:2] = np.linalg.solve(A, B).ravel()
+        pcenter[2] = -(d_plane + n_prp[0] * pcenter[0] + n_prp[1] * pcenter[1]) / n_prp[2]
+    else:
+        if n_prp_in_xy:
+            A = np.array([[2 * (p0[1] - pf[1] - n_prp[1] / n_prp[0] * (p0[0] - pf[0])), 2 * (p0[2] - pf[2])], [2 * (p0[1] - pm[1] - n_prp[1] / n_prp[0] * (p0[0] - pm[0])), 2 * (p0[2] - pm[2])]])
+            B = np.array([[p0[0]**2 - pf[0]**2 + p0[1]**2 - pf[1]**2 + p0[2]**2 - pf[2]**2 + 2 * d_plane / n_prp[0] * (p0[0] - pf[0])], [p0[0]**2 - pm[0]**2 + p0[1]**2 - pm[1]**2 + p0[2]**2 - pm[2]**2 + 2 * d_plane / n_prp[0] * (p0[0] - pm[0])]])
+            pcenter[1:] = np.linalg.solve(A, B).ravel()
+            pcenter[0] = -(d_plane + n_prp[1] * pcenter[1]) / n_prp[0]
+        elif n_prp_in_y:
+            pcenter[1] = -(d_plane) / n_prp[1]
+            A = np.array([[2 * (p0[0] - pf[0]), 2 * (p0[2] - pf[2])], [2 * (p0[0] - pm[0]), 2 * (p0[2] - pm[2])]])
+            B = np.array([[p0[0]**2 - pf[0]**2 + p0[2]**2 - pf[2]**2], [p0[0]**2 - pm[0]**2 + p0[2]**2 - pm[2]**2]])
+            pcenter[0:3:2] = np.linalg.solve(A, B).ravel()
+    print(A, B)
+    print(pcenter)
     Rcenter = np.linalg.norm(p0 - pcenter)
     print(pcenter, Rcenter)
     u = (p0 - pcenter) / np.linalg.norm(p0 - pcenter)
-    v = np.cross(u, w)
+    v = np.cross(w, u)
     print(u, v, w)
     R_plane = np.vstack((u, v, w)).T
     print(R_plane)
@@ -503,9 +523,9 @@ def circle_generation(time_step, tf, Delta, p0, pf, pm):
 
     theta_final = theta_zero_final if theta_zero_middle + theta_middle_final <= np.pi else 2 * np.pi - theta_zero_final
     print(theta_final)
-    pf_from_plane = pcenter[:2] + np.dot(R_plane[:2, :2], np.array([Rcenter * np.cos(theta_final), Rcenter * np.sin(theta_final)]))
-    zf_from_plane = -(d_plane + n_prp[0] * pf_from_plane[0] + n_prp[1] * pf_from_plane[1]) / n_prp[2]
-    print(pf_from_plane, zf_from_plane)
+    # pf_from_plane = pcenter[:2] + np.dot(R_plane[:2, :2], np.array([Rcenter * np.cos(theta_final), Rcenter * np.sin(theta_final)]))
+    # zf_from_plane = -(d_plane + n_prp[0] * pf_from_plane[0] + n_prp[1] * pf_from_plane[1]) / n_prp[2]
+    # print(pf_from_plane, zf_from_plane)
     # exit(0)
     if (Delta >= .5 * (tf - time[0])):
         print('The input you gave is not valid')
@@ -551,73 +571,88 @@ def circle_generation(time_step, tf, Delta, p0, pf, pm):
                 dd_theta[j] = np.dot(dxdx(time[j]), sol3)
         print(theta[j])
 
-    # fig1 = plt.figure()
-    # ax1 = fig1.gca(projection='3d')
-    # plt.ion()
+    fig1 = plt.figure()
+    ax1 = fig1.gca(projection='3d')
+    plt.ion()
     for j in range(0, len(time)):
-            # draw 3D line:
-        # if flag2:
-        #     if flag3:
-        #         p_d[0, j] = p0[0]
-        #         p_d[1, j] = p0[1]
-        #     else:
-        #         p_d[0, j] = p0[0]
-        #         if flag4:
-        #             p_d[2, j] = p0[2]
-        #         else:
-        #             p_d[2, j] = lamda_z * (p_d[1, j] - p0[1]) / lamda_y + p0[2]
-        #             dp_d[2, j] = lamda_z * (dp_d[1, j]) / lamda_y
-        #             ddp_d[2, j] = lamda_z * (ddp_d[1, j]) / lamda_y
 
-        # else:
-        #     p_d[1, j] = lamda_y * (p_d[0, j] - p0[0]) / lamda_x + p0[1]
-        #     p_d[2, j] = lamda_z * (p_d[0, j] - p0[0]) / lamda_x + p0[2]
-        #     dp_d[1, j] = lamda_y * (dp_d[0, j]) / lamda_x
-        #     dp_d[2, j] = lamda_z * (dp_d[0, j]) / lamda_x
-        #     ddp_d[1, j] = lamda_y * (ddp_d[0, j]) / lamda_x
-        #     ddp_d[2, j] = lamda_z * (ddp_d[0, j]) / lamda_x
         # p_d[0, j] = pcenter[0] + Rcenter * np.cos(theta[j])
         # p_d[1, j] = pcenter[1] + Rcenter * np.sin(theta[j])
         # p_d[2, j] = -(d_plane + n_prp[0] * p_d[0, j] + n_prp[1] * p_d[1, j]) / n_prp[2]
-        x_plane = Rcenter * np.cos(theta[j])
-        y_plane = Rcenter * np.sin(theta[j])
-        p_plane = np.array([x_plane, y_plane])
-        p_d[:2, j] = pcenter[:2] + np.dot(R_plane[:2, :2], p_plane)
-        p_d[2, j] = -(d_plane + n_prp[0] * p_d[0, j] + n_prp[1] * p_d[1, j]) / n_prp[2]
-        dx_plane = -Rcenter * np.sin(theta[j]) * d_theta[j]
-        dy_plane = Rcenter * np.cos(theta[j]) * d_theta[j]
-        dp_plane = np.array([dx_plane, dy_plane])
-        dp_d[:2, j] = np.dot(R_plane[:2, :2], dp_plane)
-        dp_d[2, j] = -(n_prp[0] * dp_d[0, j] + n_prp[1] * dp_d[1, j]) / n_prp[2]
-        ddx_plane = -Rcenter * np.cos(theta[j]) * dd_theta[j]
-        ddy_plane = -Rcenter * np.sin(theta[j]) * dd_theta[j]
-        ddp_plane = np.array([ddx_plane, ddy_plane])
-        ddp_d[:2, j] = np.dot(R_plane[:2, :2], ddp_plane)
-        ddp_d[2, j] = -(n_prp[0] * ddp_d[0, j] + n_prp[1] * ddp_d[1, j]) / n_prp[2]
+        if n_prp_has_z:
+            x_plane = Rcenter * np.cos(theta[j])
+            y_plane = Rcenter * np.sin(theta[j])
+            p_plane = np.array([x_plane, y_plane])
+            p_d[:2, j] = pcenter[:2] + np.dot(R_plane[:2, :2], p_plane)
+            p_d[2, j] = -(d_plane + n_prp[0] * p_d[0, j] + n_prp[1] * p_d[1, j]) / n_prp[2]
+            dx_plane = -Rcenter * np.sin(theta[j]) * d_theta[j]
+            dy_plane = Rcenter * np.cos(theta[j]) * d_theta[j]
+            dp_plane = np.array([dx_plane, dy_plane])
+            dp_d[:2, j] = np.dot(R_plane[:2, :2], dp_plane)
+            dp_d[2, j] = -(n_prp[0] * dp_d[0, j] + n_prp[1] * dp_d[1, j]) / n_prp[2]
+            ddx_plane = -Rcenter * np.cos(theta[j]) * dd_theta[j]
+            ddy_plane = -Rcenter * np.sin(theta[j]) * dd_theta[j]
+            ddp_plane = np.array([ddx_plane, ddy_plane])
+            ddp_d[:2, j] = np.dot(R_plane[:2, :2], ddp_plane)
+            ddp_d[2, j] = -(n_prp[0] * ddp_d[0, j] + n_prp[1] * ddp_d[1, j]) / n_prp[2]
+        else:
+            if n_prp_in_xy:
+                z_plane = Rcenter * np.cos(theta[j])
+                y_plane = Rcenter * np.sin(theta[j])
+                p_plane = np.array([z_plane, y_plane])
+                p_d[1:, j] = pcenter[1:] + np.dot(R_plane[1:, :2], p_plane)
+                p_d[0, j] = -(d_plane + n_prp[1] * p_d[1, j]) / n_prp[0]
+                dz_plane = -Rcenter * np.sin(theta[j]) * d_theta[j]
+                dy_plane = Rcenter * np.cos(theta[j]) * d_theta[j]
+                dp_plane = np.array([dz_plane, dy_plane])
+                dp_d[1:, j] = np.dot(R_plane[1:, :2], dp_plane)
+                dp_d[0, j] = -(n_prp[1] * dp_d[1, j]) / n_prp[0]
+                ddz_plane = -Rcenter * np.cos(theta[j]) * dd_theta[j]
+                ddy_plane = -Rcenter * np.sin(theta[j]) * dd_theta[j]
+                ddp_plane = np.array([ddz_plane, ddy_plane])
+                ddp_d[1:, j] = np.dot(R_plane[1:, :2], ddp_plane)
+                ddp_d[0, j] = -(n_prp[1] * ddp_d[1, j]) / n_prp[0]
+            elif n_prp_in_y:
+                z_plane = Rcenter * np.cos(theta[j])
+                x_plane = Rcenter * np.sin(theta[j])
+                p_plane = np.array([z_plane, x_plane])
+                p_d[0:3:2, j] = pcenter[0:3:2] + np.dot(R_plane[0:3:2, :2], p_plane)
+                p_d[1, j] = -(d_plane) / n_prp[1]
+                dz_plane = -Rcenter * np.sin(theta[j]) * d_theta[j]
+                dx_plane = Rcenter * np.cos(theta[j]) * d_theta[j]
+                dp_plane = np.array([dz_plane, dx_plane])
+                dp_d[0:3:2, j] = np.dot(R_plane[0:3:2, :2], dp_plane)
+                dp_d[1, j] = 0
+                ddz_plane = -Rcenter * np.cos(theta[j]) * dd_theta[j]
+                ddx_plane = -Rcenter * np.sin(theta[j]) * dd_theta[j]
+                ddp_plane = np.array([ddz_plane, ddx_plane])
+                ddp_d[0:3:2, j] = np.dot(R_plane[0:3:2, :2], ddp_plane)
+                ddp_d[1, j] = 0
+
         # dp_d[0, j] = -Rcenter * np.sin(theta[j]) * d_theta[j]
         # dp_d[1, j] = Rcenter * np.cos(theta[j]) * d_theta[j]
         # dp_d[2, j] = -(n_prp[0] * dp_d[0, j] + n_prp[1] * dp_d[1, j]) / n_prp[2]
         # ddp_d[0, j] = -Rcenter * np.cos(theta[j]) * dd_theta[j]
         # ddp_d[1, j] = -Rcenter * np.sin(theta[j]) * dd_theta[j]
         # ddp_d[2, j] = -(n_prp[0] * ddp_d[0, j] + n_prp[1] * ddp_d[1, j]) / n_prp[2]
-    #     if(j % 2 == 0):
-    #         ax1.scatter(p_d[0, j], p_d[1, j], p_d[2, j], '-.ob')
-    #         # axis([x_lim y_lim z_lim])
-    #         ax1.title.set_text('3D Trajectory Generated')
-    #         ax1.set_xlabel('x(m)')
-    #         ax1.set_ylabel('y(m)')
-    #         ax1.set_zlabel('z(m)')
-    #         ax1.set_xlim([-0.5, 0.5])
-    #         ax1.set_ylim([-0.5, 0.5])
-    #         ax1.set_zlim([-0.5, 0.5])
-    #         plt.draw()
-    #         plt.show()
-    #         plt.pause(0.05)
+        if(j % 2 == 0):
+            ax1.scatter(p_d[0, j], p_d[1, j], p_d[2, j], '-.ob')
+            # axis([x_lim y_lim z_lim])
+            ax1.title.set_text('3D Trajectory Generated')
+            ax1.set_xlabel('x(m)')
+            ax1.set_ylabel('y(m)')
+            ax1.set_zlabel('z(m)')
+            ax1.set_xlim([-0.5, 0.5])
+            ax1.set_ylim([-0.5, 0.5])
+            ax1.set_zlim([-0.5, 0.5])
+            plt.draw()
+            plt.show()
+            plt.pause(0.05)
     # print(p_d[0, :])
     # print(p_d[1, :])
     # print(p_d[2, :])
     # # plt.hold(False)
-    # plt.ioff()
+    plt.ioff()
     # # print(len(time))
     # fig2 = plt.figure()
     # ax2 = fig2.gca()
@@ -627,10 +662,10 @@ def circle_generation(time_step, tf, Delta, p0, pf, pm):
     # ax2.title.set_text('Trajectory with derivatives')
     # ax2.legend()
     # ax2.set_xlabel('time(sec)')
-    # plt.draw()
-    # plt.show()
+    plt.draw()
+    plt.show()
 
-    # plt.hold(True)
+    plt.hold(True)
     # plt.close(fig1)
     # plt.close(fig2)
     return p_d, dp_d, time

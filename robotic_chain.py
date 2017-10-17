@@ -73,7 +73,7 @@ class Robot_Chain(object):
     def move_circ(self, pm, pf, a, b, c):
         p0_frame = self.robot_chain.forward_kinematics([0] * 7)
         # p0_frame = self.robot_chain.forward_kinematics(self.get_actual_position())
-        # p0_frame[:3, 3] = [0, 0, 0]
+        p0_frame[:3, 3] = [0, 0.2, 0.2]
         pf_frame = np.eye(4)
         pf_frame[:3, :3] = gu.rpy_matrix(a, b, c)
         # pf_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
@@ -88,11 +88,11 @@ class Robot_Chain(object):
         t_d, dt_d, r, simulation_time = tg.trajectory_generation(dt, tf, Delta, p0_frame, pf_frame, pm)
         # print(gu.rotation_matrix_from_angle_axis(t_d[3, -1], *r))
         # print(np.dot(p0_frame[:3, :3], gu.rotation_matrix_from_angle_axis(t_d[3, -1], *r)))
-        # return 0
+        return 0
         q, q_d = self.motion_control(p0_frame, pf_frame, t_d, dt_d, r, simulation_time, dt)
         # for i, motor in enumerate(self.motors):
         #     print(int(gu.angle_to_ticks(q[i, :], motor.resolution_bits)))
-        self.animate_move(q, q_d, p0_frame, pf_frame, simulation_time)
+        # self.animate_move(q, q_d, p0_frame, pf_frame, simulation_time)
 
     def motion_control(self, p0_frame, pf_frame, t_d, dt_d, r, simulation_time, dt):
 
@@ -144,8 +144,8 @@ class Robot_Chain(object):
             q_next = q_prev + np.insert(qdot, 0, 0) * dt
             q[:, i + 1] = q_next
             q_d[:, i] = qdot.ravel()
-            # if i % 1 == 0:
-            #     self.move_motors(q_prev[1:], q_d[:, i])
+            if i % 1 == 0:
+                self.move_motors(q_prev[1:], q_d[:, i])
             q_prev = q_next
             print("Elapsed time is: " + str(time.time() - t))
         # self.move_motors([0] * 6, [0] * 6)
@@ -158,7 +158,7 @@ class Robot_Chain(object):
             f = int(gu.angle_to_ticks(q_dot[i], motor.resolution_bits) * rate)
             # d = int(gu.angle_to_ticks(q[i], motor.resolution_bits))
             # print(d)
-            if i == 4:
+            if i == 3:
                 # motor.setProfiledAbsolutePositionSetpoint(-d)
                 # print(f)
                 motor.setVelocitySetpoint(-f)
