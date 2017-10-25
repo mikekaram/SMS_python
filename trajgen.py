@@ -571,9 +571,9 @@ def circle_generation(time_step, tf, Delta, p0, pf, pm):
                 dd_theta[j] = np.dot(dxdx(time[j]), sol3)
         print(theta[j])
 
-    fig1 = plt.figure()
-    ax1 = fig1.gca(projection='3d')
-    plt.ion()
+    # fig1 = plt.figure()
+    # ax1 = fig1.gca(projection='3d')
+    # plt.ion()
     for j in range(0, len(time)):
 
         # p_d[0, j] = pcenter[0] + Rcenter * np.cos(theta[j])
@@ -635,24 +635,24 @@ def circle_generation(time_step, tf, Delta, p0, pf, pm):
         # ddp_d[0, j] = -Rcenter * np.cos(theta[j]) * dd_theta[j]
         # ddp_d[1, j] = -Rcenter * np.sin(theta[j]) * dd_theta[j]
         # ddp_d[2, j] = -(n_prp[0] * ddp_d[0, j] + n_prp[1] * ddp_d[1, j]) / n_prp[2]
-        if(j % 2 == 0):
-            ax1.scatter(p_d[0, j], p_d[1, j], p_d[2, j], '-.ob')
-            # axis([x_lim y_lim z_lim])
-            ax1.title.set_text('3D Trajectory Generated')
-            ax1.set_xlabel('x(m)')
-            ax1.set_ylabel('y(m)')
-            ax1.set_zlabel('z(m)')
-            ax1.set_xlim([-0.5, 0.5])
-            ax1.set_ylim([-0.5, 0.5])
-            ax1.set_zlim([-0.5, 0.5])
-            plt.draw()
-            plt.show()
-            plt.pause(0.05)
+        # if(j % 2 == 0):
+        #     ax1.scatter(p_d[0, j], p_d[1, j], p_d[2, j], '-.ob')
+        #     # axis([x_lim y_lim z_lim])
+        #     ax1.title.set_text('3D Trajectory Generated')
+        #     ax1.set_xlabel('x(m)')
+        #     ax1.set_ylabel('y(m)')
+        #     ax1.set_zlabel('z(m)')
+        #     ax1.set_xlim([-0.5, 0.5])
+        #     ax1.set_ylim([-0.5, 0.5])
+        #     ax1.set_zlim([-0.5, 0.5])
+        #     plt.draw()
+        #     plt.show()
+        #     plt.pause(0.05)
     # print(p_d[0, :])
     # print(p_d[1, :])
     # print(p_d[2, :])
     # # plt.hold(False)
-    plt.ioff()
+    # plt.ioff()
     # # print(len(time))
     # fig2 = plt.figure()
     # ax2 = fig2.gca()
@@ -662,12 +662,14 @@ def circle_generation(time_step, tf, Delta, p0, pf, pm):
     # ax2.title.set_text('Trajectory with derivatives')
     # ax2.legend()
     # ax2.set_xlabel('time(sec)')
-    plt.draw()
-    plt.show()
+    # plt.draw()
+    # plt.show()
 
-    plt.hold(True)
+    # plt.hold(True)
     # plt.close(fig1)
     # plt.close(fig2)
+    # print(p_d, dp_d)
+    # exit(0)
     return p_d, dp_d, time
 
 
@@ -679,8 +681,8 @@ def trajectory_generation(time_step, tf, Delta, Transposition0, Transpositionf, 
     theta_desired = np.array([theta_desired])
     dtheta_desired = np.array([dtheta_desired])
     p_desired, dp_desired, time = circle_generation(time_step, tf, Delta, Transposition0[:3, 3], Transpositionf[:3, 3], pm)
-    print(dp_desired.shape)
-    print(dtheta_desired.shape)
+    # print(dp_desired.shape)
+    # print(dtheta_desired.shape)
     transposition_desired = np.concatenate((p_desired, theta_desired))
     dtransposition_desired = np.concatenate((dp_desired, dtheta_desired))
     return transposition_desired, dtransposition_desired, r, time
