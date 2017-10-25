@@ -72,6 +72,10 @@ class Robot_Chain(object):
     def move_xyz_abc(self, pf, a, b, c):
         p0_frame = self.robot_chain.forward_kinematics([0] * 7)
         # p0_frame = self.robot_chain.forward_kinematics(self.get_actual_position())
+<<<<<<< HEAD
+=======
+        # p0_vector = p0_frame[:3][3]
+>>>>>>> 6085924d854a7cef3c29563bd55c36e8964fa323
         pf_frame = np.eye(4)
         pf_frame[:3, :3] = gu.rpy_matrix(a, b, c)
         # pf_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
