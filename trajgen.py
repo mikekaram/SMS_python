@@ -96,11 +96,11 @@ class Trajectory_Generator(object):
         flag = lamda == 0
 
         if flag:
-            theta = np.zeros(len(self.time))
+            theta = 0.001 * np.zeros(len(self.time))
             d_theta = np.zeros(len(self.time))
             dd_theta = np.zeros(len(self.time))
-            print("No change in orientation!")
-            return theta, d_theta, r
+            print("No change in orientation! Singularity will appear!")
+            return np.array([theta]), np.array([d_theta]), r
         else:
             theta_zero = theta_0
             theta_final = theta_f
@@ -483,9 +483,9 @@ class Trajectory_Generator(object):
         p_d = np.zeros((3, len(self.time)))
         dp_d = np.zeros((3, len(self.time)))
         ddp_d = np.zeros((3, len(self.time)))
-        fig1 = plt.figure()
-        ax1 = fig1.gca(projection='3d')
-        plt.ion()
+        # fig1 = plt.figure()
+        # ax1 = fig1.gca(projection='3d')
+        # plt.ion()
         for j in range(0, len(self.time)):
 
             # p_d[0, j] = pcenter[0] + Rcenter * np.cos(theta[j])
@@ -541,36 +541,36 @@ class Trajectory_Generator(object):
                     ddp_d[0:3:2, j] = np.dot(R_plane[0:3:2, :2], ddp_plane)
                     ddp_d[1, j] = 0
 
-            if(j % 2 == 0):
-                ax1.scatter(p_d[0, j], p_d[1, j], p_d[2, j], '-.ob')
-                # axis([x_lim y_lim z_lim])
-                ax1.title.set_text('3D Trajectory Generated')
-                ax1.set_xlabel('x(m)')
-                ax1.set_ylabel('y(m)')
-                ax1.set_zlabel('z(m)')
-                ax1.set_xlim([-0.5, 0.5])
-                ax1.set_ylim([-0.5, 0.5])
-                ax1.set_zlim([-0.5, 0.5])
-                plt.draw()
-                plt.show()
-                plt.pause(0.05)
-        print(p_d[0, :])
-        print(p_d[1, :])
-        print(p_d[2, :])
+        #     if(j % 2 == 0):
+        #         ax1.scatter(p_d[0, j], p_d[1, j], p_d[2, j], '-.ob')
+        #         # axis([x_lim y_lim z_lim])
+        #         ax1.title.set_text('3D Trajectory Generated')
+        #         ax1.set_xlabel('x(m)')
+        #         ax1.set_ylabel('y(m)')
+        #         ax1.set_zlabel('z(m)')
+        #         ax1.set_xlim([-0.5, 0.5])
+        #         ax1.set_ylim([-0.5, 0.5])
+        #         ax1.set_zlim([-0.5, 0.5])
+        #         plt.draw()
+        #         plt.show()
+        #         plt.pause(0.05)
+        # print(p_d[0, :])
+        # print(p_d[1, :])
+        # print(p_d[2, :])
         # plt.hold(False)
-        plt.ioff()
-        fig2 = plt.figure()
-        ax2 = fig2.gca()
-        ax2.plot(self.time, p_d[0, :], label="trajectory", color='b')
-        ax2.plot(self.time, dp_d[0, :], label="1st derivative", color='y')
-        ax2.plot(self.time, ddp_d[0, :], label="2nd derivative", color='r')
-        ax2.title.set_text('Trajectory with derivatives')
-        ax2.legend()
-        ax2.set_xlabel('time(sec)')
-        plt.draw()
-        plt.show()
+        # plt.ioff()
+        # fig2 = plt.figure()
+        # ax2 = fig2.gca()
+        # ax2.plot(self.time, p_d[0, :], label="trajectory", color='b')
+        # ax2.plot(self.time, dp_d[0, :], label="1st derivative", color='y')
+        # ax2.plot(self.time, ddp_d[0, :], label="2nd derivative", color='r')
+        # ax2.title.set_text('Trajectory with derivatives')
+        # ax2.legend()
+        # ax2.set_xlabel('time(sec)')
+        # plt.draw()
+        # plt.show()
 
-        plt.hold(True)
+        # plt.hold(True)
         # plt.close(fig1)
         # plt.close(fig2)
         # print(p_d, dp_d)

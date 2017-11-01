@@ -41,10 +41,12 @@ class Robot_Chain(object):
     def get_actual_position(self):
         q_actual = np.zeros(7)
         for i, motor in enumerate(self.motors):
+            motor.resetErrors()
+            t.sleep(0.01)
             f = gu.ticks_to_angle(motor.getPosition()[1], motor.resolution_bits)
             print(f)
             q_actual[i + 1] = f
-            t.sleep(0.003)
+            t.sleep(0.01)
         return q_actual
 
     def check_for_limits(self, q):
@@ -70,17 +72,18 @@ class Robot_Chain(object):
         return True
 
     def move_xyz_abc(self, p0, pf, a, b, c):
+        p0_frame = np.eye(4)
         # p0_frame = self.robot_chain.forward_kinematics([0] * 7)
         # p0_frame = self.robot_chain.forward_kinematics(self.get_actual_position())
         # p0_vector = p0_frame[:3][3]
-        p0_frame = np.eye(4)
-        # p0_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
-        p0_frame[:3, :3] = gu.rpy_matrix(-np.pi, np.pi / 2, np.pi / 4)
+
+        p0_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+        # p0_frame[:3, :3] = gu.rpy_matrix(0, 0, -np.pi / 2)
+        p0_frame[:3, 3] = p0
         pf_frame = np.eye(4)
         pf_frame[:3, :3] = gu.rpy_matrix(a, b, c)
         # pf_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
-        pf_vector = pf
-        pf_frame[:3, 3] = pf_vector
+        pf_frame[:3, 3] = pf
         print(p0_frame)
         print(pf_frame)
         tf = 10
@@ -90,20 +93,20 @@ class Robot_Chain(object):
         desired_trajectory = tg.Trajectory_Generator(dt, tf, Delta)
         theta_d, dtheta_d, r = desired_trajectory.angle_axis_generation(p0_frame[:3, :3], pf_frame[:3, :3])
         # t_d, dt_d, r, simulation_time = tg.trajectory_generation(dt, tf, Delta, p0_frame, pf_frame)
-        p_d, dp_d = desired_trajectory.line_generation(p0, pf)
+        p_d, dp_d = desired_trajectory.line_generation(p0_frame[:3, 3], pf)
         t_d = np.concatenate((p_d, theta_d))
         dt_d = np.concatenate((dp_d, dtheta_d))
         simulation_time = desired_trajectory.time
         q, q_d = self.motion_control(p0_frame, pf_frame, t_d, dt_d, r, simulation_time, dt)
         # for i, motor in enumerate(self.motors):
         #     print(int(gu.angle_to_ticks(q[i, :], motor.resolution_bits)))
-        self.animate_move(q, q_d, p0_frame, pf_frame, simulation_time)
+        # self.animate_move(q, q_d, p0_frame, pf_frame, simulation_time)
 
     def move_circ(self, p0, pm, pf, a, b, c):
+        p0_frame = np.eye(4)
         # p0_frame = self.robot_chain.forward_kinematics([0] * 7)
         # p0_frame = self.robot_chain.forward_kinematics(self.get_actual_position())
-        p0_frame = np.eye(4)
-        # p0_frame[:3, :3] = gu.rpy_matrix(-np.pi, np.pi / 2, np.pi / 4)
+        # p0_frame[:3, :3] = gu.rpy_matrix(-np.pi / 2, np.pi / 2, 0)
         p0_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
         p0_frame[:3, 3] = p0
         # q0 = self.robot_chain.inverse_kinematics(p0_frame)[1:]
@@ -133,14 +136,14 @@ class Robot_Chain(object):
         # eps = 1e-10
         desired_trajectory = tg.Trajectory_Generator(dt, tf, Delta)
         theta_d, dtheta_d, r = desired_trajectory.angle_axis_generation(p0_frame[:3, :3], pf_frame[:3, :3])
-        p_d, dp_d = desired_trajectory.circle_generation(np.array(p0), np.array(pf), np.array(pm))
+        p_d, dp_d = desired_trajectory.circle_generation(p0_frame[:3, 3], np.array(pf), np.array(pm))
         t_d = np.concatenate((p_d, theta_d))
         dt_d = np.concatenate((dp_d, dtheta_d))
         simulation_time = desired_trajectory.time
         q, q_d = self.motion_control(p0_frame, pf_frame, t_d, dt_d, r, simulation_time, dt)
         # for i, motor in enumerate(self.motors):
         #     print(int(gu.angle_to_ticks(q[i, :], motor.resolution_bits)))
-        self.animate_move(q, q_d, p0_frame, pf_frame, simulation_time)
+        # self.animate_move(q, q_d, p0_frame, pf_frame, simulation_time)
 
     def motion_control(self, p0_frame, pf_frame, t_d, dt_d, r, simulation_time, dt):
 
@@ -197,10 +200,10 @@ class Robot_Chain(object):
             q_d[:, i] = qdot.ravel()
             # if i % 1 == 0:
             # if(self.check_for_limits(q_next[1:])):
-            # self.move_motors_with_velocity(q_d[:, i])
+            self.move_motors_with_velocity(q_d[:, i])
             q_prev = q_next
             print("Elapsed time is: " + str(time.time() - t))
-        # self.move_motors_with_velocity([0] * 6)
+        self.move_motors_with_velocity([0] * 6)
         return q, q_d
 
     def move_motors(self, q, q_dot):
@@ -221,7 +224,7 @@ class Robot_Chain(object):
         rate = 1.0 / 2.415
         for i, motor in enumerate(self.motors):
             f = int(gu.angle_to_ticks(q_dot[i], motor.resolution_bits) * rate)
-            if i == 3 or i == 4:
+            if i == 2 or i == 3:
                 motor.setVelocitySetpoint(-f)
             else:
                 motor.setVelocitySetpoint(f)
