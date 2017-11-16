@@ -55,24 +55,121 @@ robot.homing()
 ######################################
 #  testing bench
 # good points for line #1
-p0 = robot.robot_chain.forward_kinematics([0] * 7)[:3, 3]
-of = gu.angles_from_rotation_matrix(robot.robot_chain.forward_kinematics([0] * 7)[:3, :3])
-pf = [0.1947, -0.001, 0.11]
-robot.move_xyz_abc(p0, pf, *of)
-t.sleep(1)
-# good points for circle #1
-p0 = [0.1947, -0.001, 0.11]
-# of = [np.pi, -np.pi / 2, 0]  # rotation around local x-axis by pi rad - not so good response though...
-of = [0, 0, -np.pi / 2]
-pf = [-0.1303, 0.021, 0.165]
-pm = [0.0347, -0.144, 0.165]
-robot.move_circ(p0, pm, pf, *of)
-t.sleep(1)
+# p0 = robot.robot_chain.forward_kinematics([0] * 7)[:3, 3]
+# of = gu.angles_from_rotation_matrix(robot.robot_chain.forward_kinematics([0] * 7)[:3, :3])
+# pf = [0.1947, -0.001, 0.11]
+# robot.move_xyz_abc(p0, pf, *of)
+# t.sleep(1)
+# # good points for circle #1
+# p0 = [0.1947, -0.001, 0.11]
+# # of = [np.pi, -np.pi / 2, 0]  # rotation around local x-axis by pi rad - not so good response though...
+# of = [0, 0, -np.pi / 2]
+# pf = [-0.1303, 0.021, 0.165]
+# pm = [0.0347, -0.144, 0.165]
+# robot.move_circ(p0, pm, pf, *of)
+# t.sleep(1)
 # good points for line #2
 # p0 = [-0.1303, 0.021, 0.165]
 # of = [np.pi / 10, 0, -np.pi / 2]  # same with circle #1
 # # pf = [-0.1153, 0.1876, 0.17]
 # pf = [-0.11, 0.15, 0.1]
+######################################
+
+######################################
+#  testing bench 2
+# good points for line #1
+p0 = robot.robot_chain.forward_kinematics([0] * 7)[:3, 3]
+pf = [0.25, -0.001, 0.09]
+os = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+of = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+robot.move_xyz_abc(p0, pf, os, of)
+t.sleep(1)
+# # good points for circle #1
+p0 = [0.25, -0.001, 0.09]
+os = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+of = gu.rpy_matrix(np.pi / 2, 0, 0)
+pf = [-0.001, 0.25, 0.09]
+pm = [0.1767766952966, 0.1767766952966, 0.09]
+robot.move_circ(p0, pm, pf, os, of)
+t.sleep(1)
+# # good points for circle #2
+p0 = [-0.001, 0.25, 0.09]
+pf = [0.25, -0.001, 0.09]
+of = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+os = gu.rpy_matrix(np.pi / 2, 0, 0)
+# pm = [0.1767766952966, -0.1767766952966, 0.09]
+pm = [0.1767766952966, 0.1767766952966, 0.09]
+robot.move_circ(p0, pm, pf, os, of)
+t.sleep(1)
+# # good RETURN points for circle #2
+# pf = [-0.001, 0.25, 0.09]
+# p0 = [-0.25, -0.02, 0.09]
+# os = gu.rpy_matrix(np.pi, -np.pi / 2, 0)
+# of = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+# # pm = [0.1767766952966, -0.1767766952966, 0.09]
+# pm = [-0.001, 0.25, 0.14]
+# robot.move_circ(p0, pm, pf, os, of)
+# t.sleep(1)
+# # good RETURN points for circle #2
+# pf = [0.25, -0.001, 0.09]
+# p0 = [-0.001, 0.25, 0.09]
+# os = gu.rpy_matrix(np.pi / 2, 0, 0)
+# of = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+# # pm = [0.1767766952966, -0.1767766952966, 0.09]
+# pm = [0.1767766952966, 0.1767766952966, 0.09]
+# robot.move_circ(p0, pm, pf, os, of)
+# t.sleep(1)
+# # good points for line #2
+pf = robot.robot_chain.forward_kinematics([0] * 7)[:3, 3]
+os = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+of = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+p0 = [0.25, -0.001, 0.09]
+robot.move_xyz_abc(p0, pf, os, of)
+t.sleep(1)
+
+# # good points for circle #3
+# p0 = robot.robot_chain.forward_kinematics([0] * 7)[:3, 3]
+# os = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+# of = gu.rpy_matrix(np.pi, -np.pi / 2, 0)
+# pf = [-0.18, -0.001, 0.19]
+# # pm = [0.1767766952966, -0.1767766952966, 0.09]
+# pm = [-0.001, 0.0, 0.33]
+# robot.move_circ(p0, pm, pf, os, of)
+# t.sleep(1)
+# good points for line #2
+p0 = robot.robot_chain.forward_kinematics([0] * 7)[:3, 3]
+# of = [np.pi / 2, -np.pi / 4, -np.pi / 2]
+os = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+of = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+# pf = [0.23, 0, 0.17]
+pf = [0.17, -0.08, 0.17]
+robot.move_xyz_abc(p0, pf, os, of)
+t.sleep(1)
+# good points for line #3
+p0 = [0.17, -0.08, 0.17]
+os = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+of = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+pf = robot.robot_chain.forward_kinematics([0] * 7)[:3, 3]
+# pm = [0.18, -0.06, 0.16]
+robot.move_xyz_abc(p0, pf, os, of)
+t.sleep(1)
+# good points for line #4
+p0 = robot.robot_chain.forward_kinematics([0] * 7)[:3, 3]
+pf = [0.25, -0.0001, 0.17]
+os = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+of = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+# pf = [0.23, 0, 0.17]
+robot.move_xyz_abc(p0, pf, os, of)
+t.sleep(1)
+# good points for line #5
+pf = robot.robot_chain.forward_kinematics([0] * 7)[:3, 3]
+p0 = [0.25, -0.0001, 0.17]
+os = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+of = robot.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+# pf = [0.23, 0, 0.17]
+robot.move_xyz_abc(p0, pf, os, of)
+t.sleep(1)
+
 ######################################
 
 

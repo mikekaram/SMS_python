@@ -92,7 +92,7 @@ class Trajectory_Generator(object):
             theta_0 = theta_0 - 2 * np.pi
         print(theta_f, theta_0)
         lamda = float((theta_f - theta_0)) / self.tf
-
+        print("Theta lamda is: ", lamda)
         flag = lamda == 0
 
         if flag:
@@ -362,17 +362,16 @@ class Trajectory_Generator(object):
                 dp_d[2, j] = lamda_z * (dp_d[0, j]) / lamda_x
                 ddp_d[1, j] = lamda_y * (ddp_d[0, j]) / lamda_x
                 ddp_d[2, j] = lamda_z * (ddp_d[0, j]) / lamda_x
-        #     if(j % 2 == 0):
-        #         ax1.scatter(p_d[0, j], p_d[1, j], p_d[2, j], '-.ob')
-        #         # axis([x_lim y_lim z_lim])
-        #         ax1.title.set_text('3D Trajectory Generated')
-        #         ax1.set_xlabel('x(m)')
-        #         ax1.set_ylabel('y(m)')
-        #         ax1.set_zlabel('z(m)')
-        #         plt.draw()
-        #         plt.show()
-        #         plt.pause(0.05)
-        # # plt.hold(False)
+            # if(j % 2 == 0):
+            #     ax1.scatter(p_d[0, j], p_d[1, j], p_d[2, j], '-.ob')
+            #     # axis([x_lim y_lim z_lim])
+            #     ax1.title.set_text('3D Trajectory Generated')
+            #     ax1.set_xlabel('x(m)')
+            #     ax1.set_ylabel('y(m)')
+            #     ax1.set_zlabel('z(m)')
+            #     plt.draw()
+            #     plt.show()
+            #     plt.pause(0.05)
         # plt.ioff()
         # print(len(time))
         # fig2 = plt.figure()

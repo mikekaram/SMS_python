@@ -65,7 +65,7 @@ class sms_motor(object):
         b = ser.read(6)
         # The first 6 bytes are useless for us (2 header bytes + addressed and owned id + command id and byte count = 6 bytes)
         num = 0
-        print("Read 6 bytes and byte count is:", ord(b[5]))
+        # print("Read 6 bytes and byte count is:", ord(b[5]))
         for i in range(0, ord(b[5])):
             carrying_data = True
             b += ser.read()

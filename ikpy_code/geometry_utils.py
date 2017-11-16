@@ -66,6 +66,21 @@ def angles_from_rotation_matrix(R):
     return [a, b, c]
 
 
+def ticks_to_angle(ticks, resolution_bits):
+    if not ticks:
+        return []
+    else:
+        ticks = np.array(ticks).astype(np.float64)
+        angle = ticks * 2 * np.pi / (2**resolution_bits)
+        # print(angle)
+        return angle
+
+
+def angle_to_ticks(angle, resolution_bits):
+    ticks = angle / (2 * np.pi) * 2**resolution_bits
+    return ticks
+
+
 def angle_difference(target_angle, source_angle):
     a = target_angle - source_angle
     # print(a)
@@ -73,16 +88,58 @@ def angle_difference(target_angle, source_angle):
     return a
 
 
+def angle_difference_with_limits(target_angle, source_angle, angle_limits_clockwise):
+    if len(angle_limits_clockwise) == 0:
+        return angle_difference(target_angle, source_angle)
+    else:
+        return -np.sign(angle_difference(target_angle, source_angle)) * (2 * np.pi - abs(angle_difference(target_angle, source_angle))) if ((angle_difference(target_angle, source_angle) >= 0 and angle_difference(angle_limits_clockwise[0], source_angle) >= 0 and angle_difference(target_angle, angle_limits_clockwise[0]) >= 0) or (angle_difference(target_angle, source_angle) < 0 and angle_difference(angle_limits_clockwise[1], source_angle) < 0 and angle_difference(target_angle, angle_limits_clockwise[1]) < 0)) else angle_difference(target_angle, source_angle)
+
+
 def wrap_to_pi(theta):
     return np.mod(theta + np.pi, 2 * np.pi) - np.pi
 
 
-def quaternion_from_rotation_matrix():
-    pass
+def quaternion_from_rotation_matrix(R):
+    ita = .5 * np.sqrt(R[0, 0] + R[1, 1] + R[2, 2] + 1) if (R[0, 0] + R[1, 1] + R[2, 2] + 1 > 0) else -.5 * np.sqrt(abs(R[0, 0] + R[1, 1] + R[2, 2] + 1))
+    # print(R[0, 0] - R[1, 1] - R[2, 2] + 1)
+    # ex = .5 * np.sign(R[2, 1] - R[1, 2]) * np.sqrt(R[0, 0] - R[1, 1] - R[2, 2] + 1) if (R[0, 0] - R[1, 1] - R[2, 2] + 1 > 0) else -.5 * np.sign(R[2, 1] - R[1, 2]) * np.sqrt(abs(R[0, 0] - R[1, 1] - R[2, 2] + 1))
+    # ey = .5 * np.sign(R[0, 2] - R[2, 0]) * np.sqrt(R[1, 1] - R[2, 2] - R[0, 0] + 1) if (R[1, 1] - R[2, 2] - R[0, 0] + 1 > 0) else -.5 * np.sign(R[0, 2] - R[2, 0]) * np.sqrt(abs(R[1, 1] - R[2, 2] - R[0, 0] + 1))
+    # ez = .5 * np.sign(R[1, 0] - R[0, 1]) * np.sqrt(R[2, 2] - R[0, 0] - R[1, 1] + 1) if (R[2, 2] - R[0, 0] - R[1, 1] + 1 > 0) else -.5 * np.sign(R[1, 0] - R[0, 1]) * np.sqrt(abs(R[2, 2] - R[0, 0] - R[1, 1] + 1))
+    ex = .5 * np.sign(R[2, 1] - R[1, 2]) * np.sqrt(R[0, 0] - R[1, 1] - R[2, 2] + 1)
+    ey = .5 * np.sign(R[0, 2] - R[2, 0]) * np.sqrt(R[1, 1] - R[2, 2] - R[0, 0] + 1)
+    ez = .5 * np.sign(R[1, 0] - R[0, 1]) * np.sqrt(R[2, 2] - R[0, 0] - R[1, 1] + 1)
+    # print(ex, ey, ez)
+    return ita, np.array([ex, ey, ez])
 
 
-def rotation_matrix_from_quaternion():
-    pass
+def quaternion_from_angle_axis(theta, r):
+    ita = np.cos(theta / 2)
+    e = r * np.sin(theta / 2)
+    return ita, e
+
+
+def angle_axis_from_quaternion(ita, e):
+    theta = 2 * np.arccos(ita)
+    r = e / np.sin(theta / 2)
+    return theta, r
+
+
+def angle_axis_from_rotation_matrix(R):
+    theta = np.arccos((R[0, 0] + R[1, 1] + R[2, 2] - 1) / 2)
+    r = np.array([R[2, 1] - R[1, 2], R[0, 2] - R[2, 0], R[1, 0] - R[0, 1]]) / (2 * np.sin(theta))
+    return theta, r
+
+
+def rotation_matrix_from_angle_axis(theta, rx, ry, rz):
+    ctheta = np.cos(theta)
+    stheta = np.sin(theta)
+    R = np.array([[rx**2 * (1 - ctheta) + ctheta, rx * ry * (1 - ctheta) - rz * stheta, rx * rz * (1 - ctheta) + ry * stheta], [rx * ry * (1 - ctheta) + rz * stheta, ry**2 * (1 - ctheta) + ctheta, ry * rz * (1 - ctheta) - rx * stheta], [rx * rz * (1 - ctheta) - ry * stheta, ry * rz * (1 - ctheta) + rx * stheta, rz**2 * (1 - ctheta) + ctheta]])
+    return R
+
+
+def rotation_matrix_from_quaternion(ita, ex, ey, ez):
+    R = np.array([[2 * (ita**2 + ex**2) - 1, 2 * (ex * ey - ita * ez), 2 * (ex * ez + ita * ey)], [2 * (ex * ey + ita * ez), 2 * (ita**2 + ey**2) - 1, 2 * (ey * ez - ita * ex)], [2 * (ex * ez - ita * ey), 2 * (ey * ez + ita * ex), 2 * (ita**2 + ez**2) - 1]])
+    return R
 
 
 def rpy_matrix(roll, pitch, yaw):
@@ -100,6 +157,14 @@ def axis_rotation_matrix(axis, theta):
         [x * y * (1 - c) + z * s, y ** 2 + (1 - y**2) * c, y * z * (1 - c) - x * s],
         [x * z * (1 - c) - y * s, y * z * (1 - c) + x * s, z**2 + (1 - z**2) * c]
     ])
+
+
+def is_rotation_matrix(R):
+    epsilon = 0.001
+    if abs(np.linalg.det(R) - 1) < epsilon and np.dot(R[:, 0], R[:, 1]) < epsilon and np.dot(R[:, 1], R[:, 2]) < epsilon:
+        return True
+    else:
+        return False
 
 
 def symbolic_axis_rotation_matrix(axis, symbolic_theta):

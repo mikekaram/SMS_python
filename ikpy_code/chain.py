@@ -118,18 +118,15 @@ class Chain(object):
         Ja = sp.zeros(3, 1)
         for index, link in enumerate(self.links[1:link_number + 1]):
             # print(index)
-
             link_symbolic_matrix = link.symbolic_frame_matrix.subs(link.theta, theta[index])
             # symbolic_transformation_matrix = sp.simplify(symbolic_transformation_matrix) * link_symbolic_matrix
             symbolic_transformation_matrix = symbolic_transformation_matrix * link_symbolic_matrix
             if(link_number == 6):
-                # print(sp.Matrix([symbolic_transformation_matrix[2], symbolic_transformation_matrix[6], symbolic_transformation_matrix[10]]))
                 Ja = Ja.col_insert(index + 1, sp.Matrix([symbolic_transformation_matrix[2], symbolic_transformation_matrix[6], symbolic_transformation_matrix[10]]))
                 # print(Ja)
         # print(Ja.shape)
         if(link_number == 6):
             Ja.col_del(0)
-            # print(Ja)
             self.Ja = Ja
         # symbolic_frame_matrix = sp.simplify(symbolic_frame_matrix)
         # print("Symbolic Transformation Matrix is:", symbolic_transformation_matrix)

@@ -15,17 +15,6 @@ global absolute_position_homing, limits_ticks, resolution_bits, motorIds
 # print(len(limits_ticks[1]))
 
 # absolute_positions_homing = np.array([11145, 11692, 6942, 6876, 30025, 22205])
-# def get_angle_difference(a1, b1, c1, a2, b2, c2):
-#     a1 = ikpy.geometry_utils.wrap_to_pi(a1)
-#     b1 = ikpy.geometry_utils.wrap_to_pi(b1)
-#     c1 = ikpy.geometry_utils.wrap_to_pi(c1)
-#     a2 = ikpy.geometry_utils.wrap_to_pi(a2)
-#     b2 = ikpy.geometry_utils.wrap_to_pi(b2)
-#     c2 = ikpy.geometry_utils.wrap_to_pi(c2)
-#     d1 = ikpy.geometry_utils.angle_difference(a2, a1)
-#     d2 = ikpy.geometry_utils.angle_difference(b2, b1)
-#     d3 = ikpy.geometry_utils.angle_difference(c2, c1)
-#     return np.array([d1, d2, d3])
 
 
 class Robot_Chain(object):
@@ -37,6 +26,7 @@ class Robot_Chain(object):
         self.transition_matrix = self.robot_chain.symbolic_transformation_matrix(6)
         self.J = self.robot_chain.jacobian_matrix(self.transition_matrix)
         self.motors = motors
+        self.last_q = []
 
     def get_actual_position(self):
         q_actual = np.zeros(7)
@@ -71,21 +61,22 @@ class Robot_Chain(object):
                 exit(1)
         return True
 
-    def move_xyz_abc(self, p0, pf, a, b, c):
+    def move_xyz_abc(self, p0, pf, o_s, o_f):
         p0_frame = np.eye(4)
         # p0_frame = self.robot_chain.forward_kinematics([0] * 7)
         # p0_frame = self.robot_chain.forward_kinematics(self.get_actual_position())
         # p0_vector = p0_frame[:3][3]
 
-        p0_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
-        # p0_frame[:3, :3] = gu.rpy_matrix(0, 0, -np.pi / 2)
+        p0_frame[:3, :3] = o_s
+        # p0_frame[:3, :3] = gu.rpy_matrix(np.pi / 2, -np.pi / 4, -np.pi / 2)
+        # p0_frame[:3, :3] = gu.rpy_matrix(a_s, b_s, c_s)
         p0_frame[:3, 3] = p0
         pf_frame = np.eye(4)
-        pf_frame[:3, :3] = gu.rpy_matrix(a, b, c)
+        pf_frame[:3, :3] = o_f
         # pf_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
         pf_frame[:3, 3] = pf
-        print(p0_frame)
-        print(pf_frame)
+        # print(p0_frame)
+        # print(pf_frame)
         tf = 10
         dt = 0.2
         Delta = 0.1 * tf
@@ -98,16 +89,20 @@ class Robot_Chain(object):
         dt_d = np.concatenate((dp_d, dtheta_d))
         simulation_time = desired_trajectory.time
         q, q_d = self.motion_control(p0_frame, pf_frame, t_d, dt_d, r, simulation_time, dt)
+        # print(q)
         # for i, motor in enumerate(self.motors):
         #     print(int(gu.angle_to_ticks(q[i, :], motor.resolution_bits)))
         # self.animate_move(q, q_d, p0_frame, pf_frame, simulation_time)
+        self.last_q = q[1:, -1]
 
-    def move_circ(self, p0, pm, pf, a, b, c):
+    def move_circ(self, p0, pm, pf, o_s, o_f):
         p0_frame = np.eye(4)
         # p0_frame = self.robot_chain.forward_kinematics([0] * 7)
         # p0_frame = self.robot_chain.forward_kinematics(self.get_actual_position())
-        # p0_frame[:3, :3] = gu.rpy_matrix(-np.pi / 2, np.pi / 2, 0)
-        p0_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+        # p0_frame[:3, :3] = gu.rpy_matrix(np.pi / 2, np.pi / 2, 0)
+        # p0_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
+        # print(a_s, b_s, c_s, a, b, c)
+        p0_frame[:3, :3] = o_s
         p0_frame[:3, 3] = p0
         # q0 = self.robot_chain.inverse_kinematics(p0_frame)[1:]
         # for i, motor in enumerate(self.motors):
@@ -123,11 +118,11 @@ class Robot_Chain(object):
         # sms.broadcastDoMove()
         # t.sleep(5)
         pf_frame = np.eye(4)
-        pf_frame[:3, :3] = gu.rpy_matrix(a, b, c)
+        pf_frame[:3, :3] = o_f
         # pf_frame[:3, :3] = self.robot_chain.forward_kinematics([0] * 7)[:3, :3]
         pf_frame[:3, 3] = pf
-        print(p0_frame)
-        print(gu.angles_from_rotation_matrix(p0_frame[:3, :3]))
+        # print(p0_frame)
+        # print(gu.angles_from_rotation_matrix(p0_frame[:3, :3]))
         # exit(0)
         # print(pf_frame)
         tf = 10
@@ -141,20 +136,33 @@ class Robot_Chain(object):
         dt_d = np.concatenate((dp_d, dtheta_d))
         simulation_time = desired_trajectory.time
         q, q_d = self.motion_control(p0_frame, pf_frame, t_d, dt_d, r, simulation_time, dt)
+        print(q)
         # for i, motor in enumerate(self.motors):
         #     print(int(gu.angle_to_ticks(q[i, :], motor.resolution_bits)))
         # self.animate_move(q, q_d, p0_frame, pf_frame, simulation_time)
+        self.last_q = q[1:, -1]
 
     def motion_control(self, p0_frame, pf_frame, t_d, dt_d, r, simulation_time, dt):
 
         damping = 0.005
         K_o = 7
         K_p = 2 * np.eye(3)
-        q_0 = self.robot_chain.inverse_kinematics(p0_frame)
+        if len(self.last_q) != 0:
+            q_0 = self.robot_chain.inverse_kinematics(p0_frame, np.insert(self.last_q, 0, 0))
+        else:
+            q_0 = self.robot_chain.inverse_kinematics(p0_frame)
+        # if len(self.last_q) != 0:
+        #     print("We are inside!")
+        #     print(q_0, self.last_q)
+        #     for i in range(6):
+        #         if abs(self.last_q[i] - q_0[i + 1]) > np.pi / 4:
+        #             q_0[1:] = self.last_q
+        #             break
         # q_0 = self.get_actual_position()
         # if not q_0.all:
         #     raise ValueError("Initial Position out of Work Space!")
         #     exit(0)
+        print(p0_frame)
         q_d = np.zeros([6, len(simulation_time)])
         print(q_0)
 
@@ -168,7 +176,7 @@ class Robot_Chain(object):
         for i in range(0, len(simulation_time) - 1):
 
             p_star_frame = self.robot_chain.forward_kinematics(q_prev)
-            print(p_star_frame)
+            print("p_star_frame is:", p_star_frame[:3, 3])
             omega_i = np.dot(dt_d[3, i], r)
             omega_d = np.dot(p0_frame[:3, :3], omega_i)
             R_d = np.dot(p0_frame[:3, :3], gu.rotation_matrix_from_angle_axis(t_d[3, i], *r).astype(np.float64))
@@ -181,20 +189,31 @@ class Robot_Chain(object):
             e_o = ita_e * e_d - ita_d * e_e - np.cross(e_d, e_e)
             e_o = np.reshape(e_o, (-1, 1))
             omega_d = np.reshape(omega_d, (-1, 1))
-            print(ita_e * ita_d + np.inner(e_e, e_d), e_o)
+            # print(ita_e * ita_d + np.inner(e_e, e_d), e_o)
             thetadot = omega_d + K_o * e_o
             e_p = t_d[:3, i] - p_star_frame[:3, 3]
             pdot = dt_d[:3, i] + np.dot(K_p, e_p)
             pdot = np.reshape(pdot, (-1, 1))
             thetadot = np.reshape(thetadot, (-1, 1))
             tdot = np.concatenate((pdot, thetadot))
-            print("T dot is:", tdot)
+            # print("T dot is:", tdot)
             Ji = self.J.subs([(self.theta[0], q_prev[1]), (self.theta[1], q_prev[2]), (self.theta[2], q_prev[3]), (self.theta[3], q_prev[4]), (self.theta[4], q_prev[5]), (self.theta[5], q_prev[6])])
             Ji = np.array(Ji).astype(np.float64)
             # solution of inverse kinematics using dls from http://math.ucsd.edu/~sbuss/ResearchWeb/ikmethods/iksurvey.pdf
-            J_ = np.dot(Ji, Ji.T)
-            f = np.linalg.solve(J_ + damping_coef, tdot)
-            qdot = np.dot(Ji.T, f)
+            # J_ = np.dot(Ji, Ji.T)
+            # f = np.linalg.solve(J_ + damping_coef, tdot)
+            # qdot = np.dot(Ji.T, f)
+            # t = time.time()
+            U, s, V = np.linalg.svd(Ji)
+            s[:] = s[:] / (s[:]**2 + damping**2)
+            # s = np.reshape((s), (1, -1))
+            # print(U, s, V)
+            # print(s.shape)
+            S_inv = np.diag(s)
+            # print(S_inv.shape)
+            # S_inv = np.linalg.inv(S)
+            qdot = V.T.dot(S_inv).dot(U.T).dot(tdot)
+            # print("Elapsed time is: " + str(time.time() - t))
             q_next = q_prev + np.insert(qdot, 0, 0) * dt
             q[:, i + 1] = q_next
             q_d[:, i] = qdot.ravel()
@@ -224,7 +243,7 @@ class Robot_Chain(object):
         rate = 1.0 / 2.415
         for i, motor in enumerate(self.motors):
             f = int(gu.angle_to_ticks(q_dot[i], motor.resolution_bits) * rate)
-            if i == 2 or i == 3:
+            if i == 4:
                 motor.setVelocitySetpoint(-f)
             else:
                 motor.setVelocitySetpoint(f)
@@ -250,6 +269,7 @@ class Robot_Chain(object):
         sms.broadcastStart()
         t.sleep(0.02)
         absolute_positions_entry_positions = np.zeros((6, 1))
+        self.last_q = np.zeros((6, 1))
         for i, motor in enumerate(self.motors):
             # mId = motor.motorId
             # print(i, mId)
@@ -296,7 +316,7 @@ class Robot_Chain(object):
                     rotation7 = np.array(self.robot_chain.symbolic_transformation_matrix(index + 1).subs([(self.theta[0], q[1, j]), (self.theta[1], q[2, j]), (self.theta[2], q[3, j]), (self.theta[3], q[4, j]), (self.theta[4], q[5, j]), (self.theta[5], q[6, j])])[:3, :3]).astype(np.float64)
                     # print(rotation7)
                     orientation7[:, j] = np.array(gu.angles_from_rotation_matrix(rotation7))
-        print(position)
+        # print(position)
 
         min_x = np.amin(np.concatenate([position["pos0"][0, :], position["pos1"][0, :], position["pos2"][0, :], position["pos3"][0, :], position["pos4"][0, :], position["pos5"][0, :], position["pos6"][0, :], position["pos7"][0, :]]))
         max_x = np.amax(np.concatenate([[position["pos0"][0, :], position["pos1"][0, :], position["pos2"][0, :], position["pos3"][0, :], position["pos4"][0, :], position["pos5"][0, :], position["pos6"][0, :], position["pos7"][0, :]]]))
