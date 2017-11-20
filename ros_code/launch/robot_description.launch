@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="6dof_robot" default="$(find beginner_tutorials)/6dof_description.urdf"/>
+  <param name="robot_description" textfile="$(arg 6dof_robot)" />
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="rob_st_pub" >
+      <remap from="robot_description" to="different_robot_description" />
+      <remap from="joint_states" to="different_joint_states" />
+    </node>
+<!--   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" > -->
+  <!-- </node> -->
+    <param name="use_gui" value="true" />
+</launch>

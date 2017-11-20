@@ -5,6 +5,7 @@ import struct
 import os
 import tty
 import select
+import numpy as np
 ZO_PROTOCOL_SET_COMMANDS_START = 0x00
 ZO_PROTOCOL_GET_COMMANDS_START = 0x64
 ZO_PROTOCOL_BRC_COMMANDS_START = 0xC8
@@ -22,7 +23,7 @@ ZO_PROTOCOL_PACKET_SIZE = ZO_PROTOCOL_DATA_SIZE + ZO_PROTOCOL_INFO_SIZE
 ZO_PROTOCOL_DO_NOTHING = 0x00
 ZO_PROTOCOL_STOP = 0x01
 ZO_PROTOCOL_HALT = 0x02
-ZO_PROTOCOL_COMMAND_RESPONSE_TIMEOUT_US = 15000
+ZO_PROTOCOL_COMMAND_RESPONSE_TIMEOUT_US = 200000
 ZO_WARNING_NONE = 0
 ZO_WARNING_WRONG_LRC = 104
 ZO_WARNING_RESPONSE_TIMEOUT = 105
@@ -61,6 +62,7 @@ class zo_protocol_packet(object):
 
     def getResponse(self, serial_object):
         # // tcflush(fd, TCIFLUSH);
+        # termios.tcflush(serial_object.fd, termios.TCIOFLUSH)
         global warning, CommSuccess
         while(not(self.getPacketSerial(serial_object))):
             if not serial_object.serialTimeout(ZO_PROTOCOL_COMMAND_RESPONSE_TIMEOUT_US):
@@ -68,15 +70,20 @@ class zo_protocol_packet(object):
                 CommSuccess = False
                 warning = ZO_WARNING_RESPONSE_TIMEOUT
                 # print(CommSuccess, "ZO_WARNING_RESPONSE_TIMEOUT")
+                termios.tcflush(serial_object.fd, termios.TCIOFLUSH)
                 break
+            else:
+                CommSuccess = True
         if(CommSuccess is True):
             if(self.lrc != self.calcLRC()):
                 CommSuccess = False
                 warning = ZO_WARNING_WRONG_LRC
-                print(CommSuccess, "ZO_WARNING_WRONG_LRC")
+                # print(CommSuccess, "ZO_WARNING_WRONG_LRC")
             if(self.commandID == ZO_PROTOCOL_ERROR_ID):
                 CommSuccess = False
                 warning = self.data[0]
+                termios.tcflush(serial_object.fd, termios.TCIOFLUSH)
+                # print(CommSuccess, warning)
         return CommSuccess
 
     def calcLRC(self):
@@ -497,7 +504,7 @@ class sms_motor(object):
     def resetErrors(self):
         packet = zo_protocol_packet(self.motorId, 0x01, 0x1E, 0x00, [])
         if(packet.putPacketSerial(self.serial)):
-            print("Packet Sent")
+            # print("Packet Sent")
             return packet.getResponse(self.serial)
         # self.sendCommand(30)
         # # time.sleep(0.02)
@@ -509,9 +516,9 @@ class sms_motor(object):
             if packet.getResponse(self.serial):
                 return struct.unpack('<h', packet.data)[0]
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
         # self.sendCommand(100)
         # return self.getResponse()
 
@@ -521,9 +528,9 @@ class sms_motor(object):
             if packet.getResponse(self.serial):
                 return struct.unpack('<h', packet.data)[0]
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
         # self.sendCommand(101)
         # return self.getResponse()
 
@@ -533,9 +540,9 @@ class sms_motor(object):
             if packet.getResponse(self.serial):
                 return struct.unpack('<h', packet.data)[0]
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
         # self.sendCommand(102)
         # return self.getResponse()
 
@@ -545,9 +552,9 @@ class sms_motor(object):
             if packet.getResponse(self.serial):
                 return struct.unpack('<f', packet.data)[0]
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
         # self.sendCommand(103)
         # return self.getResponse()
 
@@ -557,9 +564,9 @@ class sms_motor(object):
             if packet.getResponse(self.serial):
                 return struct.unpack('<f', packet.data)[0]
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
         # self.sendCommand(104)
         # return self.getResponse()
 
@@ -569,9 +576,9 @@ class sms_motor(object):
             if packet.getResponse(self.serial):
                 return struct.unpack('<h', packet.data)[0]
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
         # self.sendCommand(105)
         # return self.getResponse()
 
@@ -581,9 +588,9 @@ class sms_motor(object):
             if packet.getResponse(self.serial):
                 return struct.unpack('<h', packet.data)[0]
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
         # self.sendCommand(106)
         # return self.getResponse()
 
@@ -593,9 +600,9 @@ class sms_motor(object):
             if packet.getResponse(self.serial):
                 return ((packet.data[0] & (1 << dio)) == (1 << dio))
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
         # self.sendCommand(107)
         # return self.getDigitalIOResponse()
 
@@ -605,9 +612,9 @@ class sms_motor(object):
             if packet.getResponse(self.serial):
                 return ((packet.data[0] & (1 << din)) == (1 << din))
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
         # self.sendCommand(109)
         # return self.getDigitalIOResponse()
 
@@ -618,9 +625,9 @@ class sms_motor(object):
                 return struct.unpack('<h', packet.data[(ain * 2) - 2])[0]
                 # probably a bug here!!!
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
 
     def getPosition(self):
         packet = zo_protocol_packet(self.motorId, 0x01, 0x6F, 0x00, [])
@@ -629,9 +636,12 @@ class sms_motor(object):
                 data = ''.join(str(elem) for elem in packet.data)
                 return struct.unpack('<q', data)[0]
             else:
-                return -1
+                # print("Didn't get Response")
+                self.resetErrors()
+                return np.nan
         else:
-            return -1
+            print("Didn't send  Packet")
+            return np.nan
         # self.sendCommand(111)
         # return self.getResponse()
 
@@ -644,9 +654,9 @@ class sms_motor(object):
                 data = ''.join(str(elem) for elem in packet.data)
                 return struct.unpack('<H', data)[0]
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
         # self.sendCommand(112)
         # return self.getResponse()
 
@@ -656,9 +666,9 @@ class sms_motor(object):
             if packet.getResponse(self.serial):
                 return struct.unpack('<f', packet.data)[0]
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
         # self.sendCommand(113)
         # return self.getResponse()
 
@@ -668,9 +678,9 @@ class sms_motor(object):
             if packet.getResponse(self.serial):
                 return struct.unpack('<h', packet.data)[0]
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
         # self.sendCommand(114)
         # return self.getResponse()
 
@@ -690,6 +700,6 @@ class sms_motor(object):
             if packet.getResponse(self.serial):
                 return struct.unpack('<f', packet.data)[0]
             else:
-                return -1
+                return np.nan
         else:
-            return -1
+            return np.nan
